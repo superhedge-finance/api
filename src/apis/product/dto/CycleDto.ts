@@ -32,5 +32,12 @@ export class CycleDto {
   apy: string;
 
   @Property()
-  url: string;
+  underlyingSpotRef: number;
+
+  @Property()
+  optionMinOrderSize: number;
+
+  @Property()
+  subAccountId: string;
+  
 }

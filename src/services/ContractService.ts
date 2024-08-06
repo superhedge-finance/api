@@ -28,6 +28,7 @@ export class ContractService {
   }
 
   subscribeToEvents(chainId: number, eventName: string, callback: (event: any) => void) {
+    // console.log(this.factoryContract);
     this.factoryContract[chainId].on(eventName, (...event) => {
       callback(event);
     });
@@ -96,7 +97,9 @@ export class ContractService {
         issuanceDate: _issuanceCycle.issuanceDate.toNumber(),
         maturityDate: _issuanceCycle.maturityDate.toNumber(),
         apy: _issuanceCycle.apy,
-        url: _issuanceCycle.uri
+        underlyingSpotRef: _issuanceCycle.underlyingSpotRef.toNumber(),
+        optionMinOrderSize: _issuanceCycle.optionMinOrderSize.toNumber(),
+        subAccountId: _issuanceCycle.subAccountId
       },
     };
   }

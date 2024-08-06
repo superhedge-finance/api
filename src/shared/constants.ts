@@ -5,7 +5,7 @@ export const SH_FACTORY_ADDRESS: { [chainId: number]: string } = {
   [SUPPORT_CHAIN_IDS.MOONBEAM_ALPHA]: "0x467b31Caa1f26bCe5aE09C2b629026eE03C34C07",
   [SUPPORT_CHAIN_IDS.ARBITRUM_GOERLI]: "0xA0e7847bDBc15e9D193132da69C92214B845EA33",
   [SUPPORT_CHAIN_IDS.MANTLE_TESTNET]: "0xC8187F7713e99B3Dd169C6818d297B1014Be9876",
-  [SUPPORT_CHAIN_IDS.ARBITRUM]:"0x17aB97eFDaf784C20F28B79930EA1Ba82EeB9614",
+  [SUPPORT_CHAIN_IDS.ARBITRUM]:"0x5729Aa7Dabb254d413C7eE1DE7c567171CE81E6e",
 };
 
 export const MARKETPLACE_ADDRESS: { [chainId: number]: string } = {
@@ -32,12 +32,13 @@ export const SUPPORT_CHAINS = [
   SUPPORT_CHAIN_IDS.ARBITRUM,
 ];
 
-export const RPC_PROVIDERS = {
+export const RPC_PROVIDERS: {[chainId: number]: string} = {
   [SUPPORT_CHAIN_IDS.GOERLI]: "https://goerli.blockpi.network/v1/rpc/public",
   [SUPPORT_CHAIN_IDS.MOONBEAM_ALPHA]: "https://rpc.api.moonbase.moonbeam.network",
   [SUPPORT_CHAIN_IDS.ARBITRUM_GOERLI]: "https://goerli-rollup.arbitrum.io/rpc",
   [SUPPORT_CHAIN_IDS.MANTLE_TESTNET]: "https://rpc.testnet.mantle.xyz",
-  [SUPPORT_CHAIN_IDS.ARBITRUM]:"https://arb-mainnet.g.alchemy.com/v2/l-Gl6FoUtyr40MV4ISs2w2PiS7sK-ebo",
+  // [SUPPORT_CHAIN_IDS.ARBITRUM]:"https://arb1.arbitrum.io/rpc",
+  [SUPPORT_CHAIN_IDS.ARBITRUM]:"https://site1.moralis-nodes.com/arbitrum/b7337e4749f147acbc6c199c28ef4bc4"
 };
 
 export const DECIMAL: { [chainId: number]: number } = {
@@ -47,3 +48,6 @@ export const DECIMAL: { [chainId: number]: number } = {
   [SUPPORT_CHAIN_IDS.MANTLE_TESTNET]: 6,
   [SUPPORT_CHAIN_IDS.ARBITRUM]: 6,
 };
+
+
+

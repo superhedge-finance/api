@@ -5,7 +5,7 @@ import { ContractService } from "../../services/ContractService";
 import { ProductService } from "./services/ProductService";
 import { CreatedProductDto } from "./dto/CreatedProductDto";
 import { ProductDetailDto } from "./dto/ProductDetailDto";
-import { CronService } from "../../services/CronService";
+// import { CronService } from "../../services/CronService";
 
 @Controller("/products")
 export class ProductController {
@@ -13,7 +13,7 @@ export class ProductController {
   private readonly productService: ProductService;
 
   @Inject()
-  private readonly cronService: CronService;
+  // private readonly cronService: CronService;
 
   @Inject()
   private readonly contractService: ContractService;
@@ -72,5 +72,15 @@ export class ProductController {
     return this.productService.getHolderList(tokenAddress);
   }
 
+  @Post("/get-amount-out-min")
+  // @Returns(200,"Failed")
+  async getAmountOutMin(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("walletAddress") walletAddress: string,
+    @QueryParams("productAddress") productAddress: string,
+    @QueryParams("noOfBlock") noOfBlock: number
+  ): Promise<{amountTokenOut: number}>{
+    return this.productService.getAmountOutMin(chainId,walletAddress,productAddress,noOfBlock);
+  }
 
 }

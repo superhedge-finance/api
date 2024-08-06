@@ -24,11 +24,15 @@ export class EventsController {
   private readonly marketplaceRepository: MarketplaceRepository;
 
   $onInit() {
+    // listen to get transaction from on chain event
+    console.log(SUPPORT_CHAINS);
     for (const chainId of SUPPORT_CHAINS) {
+      // console.log(chainId)
       this.contractService.subscribeToEvents(chainId, "ProductCreated", () => {
         this.contractService.getLatestBlockNumber(chainId).then((blockNumber) => {
           this.contractService.getPastEvents(chainId, "ProductCreated", blockNumber - 10, blockNumber).then((pastEvents) => {
             this.productService.syncProducts(chainId, pastEvents).then((r) => console.log(r));
+            console.log("running")
           });
         });
       });
@@ -75,7 +79,7 @@ export class EventsController {
               "FundAccept",
               "FundLock",
               "Issuance",
-              "WeeklyCoupon",
+              // "WeeklyCoupon",
               "OptionPayout",
               "Mature",
               "Unpaused",
@@ -91,8 +95,8 @@ export class EventsController {
                   this.productService.updateProduct(chainId, product.address, stats).then((r) => console.log(r));
                 });
               }
-
-              if (["Deposit", "WithdrawPrincipal", "WithdrawCoupon", "WithdrawOption", "WeeklyCoupon", "OptionPayout"].includes(eventName)) {
+              // if (["Deposit", "WithdrawPrincipal", "WithdrawCoupon", "WithdrawOption", "WeeklyCoupon", "OptionPayout"].includes(eventName)) {
+              if (["Deposit", "WithdrawPrincipal", "WithdrawCoupon", "WithdrawOption", "OptionPayout"].includes(eventName)) {
                 let withdrawType: WITHDRAW_TYPE = WITHDRAW_TYPE.NONE;
                 let type: HISTORY_TYPE;
 
@@ -107,11 +111,13 @@ export class EventsController {
                   type = HISTORY_TYPE.WITHDRAW;
                 } else if (eventName === "Deposit") {
                   type = HISTORY_TYPE.DEPOSIT;
-                } else if (eventName === "WeeklyCoupon") {
-                  type = HISTORY_TYPE.WEEKLY_COUPON;
                 } else {
                   type = HISTORY_TYPE.OPTION_PAYOUT;
                 }
+
+                // else if (eventName === "WeeklyCoupon") {
+                //   type = HISTORY_TYPE.WEEKLY_COUPON;
+                // } 
 
                 const address = event.args._user;
                 

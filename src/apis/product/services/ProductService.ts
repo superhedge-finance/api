@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@tsed/di";
 import { Not, UpdateResult } from "typeorm";
-import { BigNumber, ethers, FixedNumber } from "ethers";
+import { BigNumber, ethers, FixedNumber, Contract } from "ethers";
 import { History, Product, ProductRepository, WithdrawRequest, WithdrawRequestRepository } from "../../../dal";
 import { CreatedProductDto } from "../dto/CreatedProductDto";
 import { ProductDetailDto } from "../dto/ProductDetailDto";
@@ -9,6 +9,10 @@ import { StatsDto } from "../dto/StatsDto";
 import { HistoryRepository } from "../../../dal/repository/HistoryRepository";
 import { HISTORY_TYPE, WITHDRAW_TYPE } from "../../../shared/enum";
 import { DECIMAL } from "../../../shared/constants";
+import { RPC_PROVIDERS, SUPPORT_CHAINS } from "../../../shared/constants";
+import PRODUCT_ABI from "../../../services/abis/SHProduct.json";
+import ERC20_ABI from "../../../services/abis/ERC20.json";
+import PT_ABI from "../../../services/abis/PTToken.json";
 
 const express = require("express")
 // Import Moralis
@@ -26,6 +30,10 @@ Moralis.start({
 
 @Injectable()
 export class ProductService {
+
+  private readonly provider: { [chainId: number]: ethers.providers.JsonRpcProvider } = {};
+
+
   @Inject(ProductRepository)
   private readonly productRepository: ProductRepository;
 
@@ -284,4 +292,60 @@ export class ProductService {
   
   //   return { holders };
   // }
+
+  async getAmountOutMin(chainId: number,walletAddress: string, productAddress: string,noOfBlock: number): Promise<{amountTokenOut: number}>
+  {
+    const ethers = require('ethers');
+    const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
+    const _productContract = new ethers.Contract(productAddress, PRODUCT_ABI, provider);
+    const _tokenAddress = await _productContract.tokenAddress()
+    console.log(_tokenAddress)
+    
+    const _tokenAddressInstance = new ethers.Contract(_tokenAddress, ERC20_ABI, provider)
+    const _tokenDecimals = await _tokenAddressInstance.decimals()
+    const _tokenBalance = await _tokenAddressInstance.balanceOf(walletAddress)
+    const tokenBalance = await Number(ethers.utils.formatUnits(_tokenBalance,0))
+    
+    // PT Token
+    const _ptAddress = await _productContract.PT()
+    const _ptAddressInstance = new ethers.Contract(_ptAddress, PT_ABI, provider)
+    const _ptBalance = await _ptAddressInstance.balanceOf(productAddress)
+    const _ptTotal = await Number(ethers.utils.formatUnits(_ptBalance,0))
+
+    const _totalCurrentSupply = await _productContract.totalCurrentSupply()
+    const totalCurrentSupply = await Number(ethers.utils.formatUnits(_totalCurrentSupply,0))
+
+    const product = await this.productRepository.findOne({
+      where: {
+        address: productAddress,
+        chainId: chainId,
+        isPaused: false,
+      },
+    });
+    const issuance = product!.issuanceCycle
+   
+    const underlyingSpotRef = issuance.underlyingSpotRef
+    const optionMinOrderSize = (issuance.optionMinOrderSize) / 10
+    const withdrawBlockSize = underlyingSpotRef * optionMinOrderSize
+
+    const early_withdraw_balance_user = (noOfBlock * withdrawBlockSize) * 10**(_tokenDecimals)
+
+    const alocation  = early_withdraw_balance_user / totalCurrentSupply
+
+    const _amountOutMin = Math.round(_ptTotal * alocation)
+
+    const _marketAddrress = await _productContract.market()
+    const _currency = await _productContract.currencyAddress()
+    const url = `https://api-v2.pendle.finance/sdk/api/v1/swapExactPtForToken?chainId=42161&receiverAddr=${address}&marketAddr=${_marketAddrress}&amountPtIn=${_amountOutMin}&tokenOutAddr=${_currency}&slippage=0.002`;
+    const response = await fetch(url);
+    const params = await response.json();
+    console.log('amountTokenOut')
+    console.log(params.data.amountTokenOut)
+    console.log(typeof params.data.amountTokenOut)
+    const amountTokenOut = params.data.amountTokenOut
+    return {amountTokenOut}
+    
+  }
+    
+  
 }
