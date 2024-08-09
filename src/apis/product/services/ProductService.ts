@@ -17,6 +17,10 @@ import PT_ABI from "../../../services/abis/PTToken.json";
 const express = require("express")
 // Import Moralis
 const Moralis = require("moralis").default
+
+const WebSocketServer = require('ws');
+
+
 // Import the EvmChain dataType
 const { EvmChain } = require("@moralisweb3/common-evm-utils")
 
@@ -295,6 +299,7 @@ export class ProductService {
 
   async getAmountOutMin(chainId: number,walletAddress: string, productAddress: string,noOfBlock: number): Promise<{amountTokenOut: number}>
   {
+    let amountTokenOut = 0
     const ethers = require('ethers');
     const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
     const _productContract = new ethers.Contract(productAddress, PRODUCT_ABI, provider);
@@ -329,23 +334,184 @@ export class ProductService {
     const withdrawBlockSize = underlyingSpotRef * optionMinOrderSize
 
     const early_withdraw_balance_user = (noOfBlock * withdrawBlockSize) * 10**(_tokenDecimals)
+    const total_user_block = tokenBalance/withdrawBlockSize
 
-    const alocation  = early_withdraw_balance_user / totalCurrentSupply
-
-    const _amountOutMin = Math.round(_ptTotal * alocation)
-
-    const _marketAddrress = await _productContract.market()
-    const _currency = await _productContract.currencyAddress()
-    const url = `https://api-v2.pendle.finance/sdk/api/v1/swapExactPtForToken?chainId=42161&receiverAddr=${address}&marketAddr=${_marketAddrress}&amountPtIn=${_amountOutMin}&tokenOutAddr=${_currency}&slippage=0.002`;
-    const response = await fetch(url);
-    const params = await response.json();
-    console.log('amountTokenOut')
-    console.log(params.data.amountTokenOut)
-    console.log(typeof params.data.amountTokenOut)
-    const amountTokenOut = params.data.amountTokenOut
+    if(total_user_block>=noOfBlock)
+    {
+      const alocation  = early_withdraw_balance_user / totalCurrentSupply
+      const _amountOutMin = Math.round(_ptTotal * alocation)
+      const _marketAddrress = await _productContract.market()
+      const _currency = await _productContract.currencyAddress()
+      const url = `https://api-v2.pendle.finance/sdk/api/v1/swapExactPtForToken?chainId=42161&receiverAddr=${address}&marketAddr=${_marketAddrress}&amountPtIn=${_amountOutMin}&tokenOutAddr=${_currency}&slippage=0.002`;
+      const response = await fetch(url);
+      const params = await response.json();
+      console.log('amountTokenOut')
+      console.log(params.data.amountTokenOut)
+      console.log(typeof params.data.amountTokenOut)
+      amountTokenOut = params.data.amountTokenOut
+    }
+    
     return {amountTokenOut}
     
   }
-    
   
+  async getDirectionInstrument(subAccountId: string): Promise<{instrumentArray: string[], directionArray: string[] }> {
+    return new Promise((resolve, reject) => {
+        const ws = new WebSocketServer('wss://test.deribit.com/ws/api/v2');
+
+        // Authentication message
+        const authMsg = {
+            "jsonrpc": "2.0",
+            "id": 9929,
+            "method": "public/auth",
+            "params": {
+                "grant_type": "client_credentials",
+                "client_id": "DbdFI31E",
+                "client_secret": "O8zPh_f-S65wmT5lKhh_934nUwPmGY1TDl83AgNt58A"
+            }
+        };
+
+        // Positions message
+        const positionsMsg = {
+            "jsonrpc": "2.0",
+            "id": 2236,
+            "method": "private/get_positions",
+            "params": {
+                "currency": "BTC",
+                "subaccount_id": subAccountId //59358
+            }
+        };
+
+        // Handle incoming messages
+        ws.onmessage = function (e: any) {
+            const response = JSON.parse(e.data);
+            console.log('Received from server:', response);
+
+            // Check if the response is for authentication
+            if (response.id === authMsg.id) {
+                // Check if authentication was successful
+                if (response.result && response.result.access_token) {
+                    console.log("Authentication successful, retrieving positions...");
+                    // Send the positions request
+                    ws.send(JSON.stringify(positionsMsg));
+                } else {
+                    console.error("Authentication failed:", response);
+                    reject(new Error("Authentication failed"));
+                }
+            }
+
+            // Check if the response is for positions
+            if (response.id === positionsMsg.id) {
+                // Handle the positions response
+                console.log("Positions Response:", response.result);
+                const directionArray = response.result.map((i: any) => i.direction);
+                const instrumentArray = response.result.map((i: any) => i.instrument_name);
+                console.log("Instrument Array:", instrumentArray);
+
+                // Resolve the promise with the direction and instrument arrays
+                resolve({ instrumentArray,directionArray });
+            }
+        };
+
+        // Handle WebSocket connection open
+        ws.onopen = function () {
+            console.log("WebSocket connection opened. Sending authentication message...");
+            ws.send(JSON.stringify(authMsg));
+        };
+
+        // Handle WebSocket errors
+        ws.onerror = function (error: any) {
+            console.error("WebSocket error:", error);
+            reject(error); // Reject the promise on error
+        };
+
+        // Handle WebSocket connection close
+        ws.onclose = function () {
+            console.log("WebSocket connection closed.");
+        };
+    });
+}
+
+async getTotalOptionPosition(instrumentArray: string[], directionArray: string[]): Promise<{ totalAmountPosition: number }> {
+  return new Promise((resolve, reject) => {
+      let totalAmountPosition = 0
+      const ws = new WebSocketServer('wss://test.deribit.com/ws/api/v2')
+      ws.onmessage = function (e: any) {
+          let instrumentUnwindPrice = 0
+          const response = JSON.parse(e.data);
+          // console.log(response.result[0])
+          const index = instrumentArray.findIndex(instruments => instruments === response.result[0].instrument_name)
+          if(directionArray[index] == "buy")
+          {
+            instrumentUnwindPrice = response.result[0].bid_price * response.result[0].underlying_price
+          }
+          else{
+            instrumentUnwindPrice = response.result[0].ask_price * response.result[0].underlying_price
+          }
+          totalAmountPosition+=instrumentUnwindPrice
+          resolve({totalAmountPosition});
+      };
+
+      ws.onopen = function () {
+          // Send a message for each instrument
+          instrumentArray.forEach((instrument:string) => {
+            const msg = {
+                "jsonrpc": "2.0",
+                "id": 3659,
+                "method": "public/get_book_summary_by_instrument",
+                "params": {
+                    "instrument_name": instrument
+                }
+            };
+            ws.send(JSON.stringify(msg));
+          });
+      };
+
+      ws.onerror = function (error: any) {
+          console.error("WebSocket error:", error);
+          reject(error);
+      };
+
+      ws.onclose = function () {
+          console.log("WebSocket connection closed.");
+      };
+    });
+  }
+
+async getUserOptionPosition(chainId: number,walletAddress: string, productAddress: string,
+  noOfBlock: number,totalOptionPosition: number): Promise<{userOptionPosition: number}>
+{
+  let userOptionPosition = 0
+  const ethers = require('ethers');
+  const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
+  const _productContract = new ethers.Contract(productAddress, PRODUCT_ABI, provider);
+  const _tokenAddress = await _productContract.tokenAddress()
+
+  const _tokenAddressInstance = new ethers.Contract(_tokenAddress, ERC20_ABI, provider)
+  const _tokenDecimals = await _tokenAddressInstance.decimals()
+  const _tokenBalance = await _tokenAddressInstance.balanceOf(walletAddress)
+  const tokenBalance = Number(ethers.utils.formatUnits(_tokenBalance,0))/(10**_tokenDecimals)
+
+  const _issuanceCycle = await _productContract.issuanceCycle();
+  const underlyingSpotRef = _issuanceCycle.underlyingSpotRef.toNumber()
+  const optionMinOrderSize = (_issuanceCycle.optionMinOrderSize.toNumber()) / 10
+  const withdrawBlockSize = underlyingSpotRef * optionMinOrderSize
+  const early_withdraw_balance_user = (noOfBlock * withdrawBlockSize) * 10**(_tokenDecimals)
+  const total_user_block = tokenBalance/withdrawBlockSize
+
+  const _totalCurrentSupply = await _productContract.totalCurrentSupply()
+  const totalCurrentSupply = await Number(ethers.utils.formatUnits(_totalCurrentSupply,0))
+
+  if(total_user_block>=noOfBlock)
+  {
+    const alocation  = early_withdraw_balance_user / totalCurrentSupply
+    userOptionPosition = (alocation * totalOptionPosition)
+  }
+  
+  return {userOptionPosition}
+}
+
+
+
+
 }

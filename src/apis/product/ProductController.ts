@@ -83,4 +83,57 @@ export class ProductController {
     return this.productService.getAmountOutMin(chainId,walletAddress,productAddress,noOfBlock);
   }
 
+  // @Post("/get-option-position")
+  // // @Returns(200,"Failed")
+  // async getTotalOptionPosition(
+  //   // @QueryParams("chainId") chainId: number,
+  //   // @QueryParams("walletAddress") walletAddress: string,
+  //   // @QueryParams("productAddress") productAddress: string,
+  //   // @QueryParams("noOfBlock") noOfBlock: number
+  // ): Promise<{amountOptionPosition: number}>{
+  //   return this.productService.getTotalOptionPosition();
+  // }
+
+  @Post("/get-option-position")
+  async getTotalOptionPosition(
+    @BodyParams() body: { instrumentArray: string[]; directionArray: string[] }
+  ): Promise<{ totalAmountPosition: number }> {
+    const { instrumentArray, directionArray } = body;
+
+    // // Validate input arrays
+    // if (!Array.isArray(instrumentArray) || !Array.isArray(directionArray)) {
+    //   throw new Error("Invalid input: instruments and directions must be arrays.");
+    // }
+
+    // if (instrumentArray.length !== directionArray.length) {
+    //   throw new Error("Invalid input: instruments and directions must have the same length.");
+    // }
+
+    // Call the service method with the input arrays
+    return this.productService.getTotalOptionPosition(instrumentArray, directionArray);
+  }
+
+
+  @Post("/get-direction-instrument")
+  // @Returns(200,"Failed")
+  async getDirectionInstrument(
+    @QueryParams("subAccountId") subAccountId: string,
+  ): Promise<{instrumentArray: string[], directionArray: string[]}>{
+    return this.productService.getDirectionInstrument(subAccountId);
+  }
+
+  @Post("/get-user-option-position")
+  // @Returns(200,"Failed")
+  async getUserOptionPosition(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("walletAddress") walletAddress: string,
+    @QueryParams("productAddress") productAddress: string,
+    @QueryParams("noOfBlock") noOfBlock: number,
+    @QueryParams("totalOptionPosition") totalOptionPosition: number
+  ): Promise<{userOptionPosition: number}>{
+    return this.productService.getUserOptionPosition(chainId,walletAddress,productAddress,noOfBlock,totalOptionPosition);
+  }
+
 }
+
+

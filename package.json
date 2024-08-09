@@ -73,7 +73,9 @@
     "typeorm": "0.3.11",
     "typeorm-naming-strategies": "^4.1.0",
     "@moralisweb3/common-evm-utils": "^2.26.9",
-    "moralis": "^2.26.9"
+    "moralis": "^2.26.9",
+    "websocket": "^1.0.33",
+    "ws": "^7.4.2"
   },
   "devDependencies": {
     "@tsed/cli-plugin-eslint": "4.2.6",
