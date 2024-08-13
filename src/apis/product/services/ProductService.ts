@@ -20,6 +20,7 @@ const Moralis = require("moralis").default
 
 const WebSocketServer = require('ws');
 
+const unwindMargin = 0.1 //10%
 
 // Import the EvmChain dataType
 const { EvmChain } = require("@moralisweb3/common-evm-utils")
@@ -505,7 +506,7 @@ async getUserOptionPosition(chainId: number,walletAddress: string, productAddres
   if(total_user_block>=noOfBlock)
   {
     const alocation  = early_withdraw_balance_user / totalCurrentSupply
-    userOptionPosition = (alocation * totalOptionPosition)
+    userOptionPosition = (alocation * totalOptionPosition * (1 - unwindMargin))
   }
   
   return {userOptionPosition}
