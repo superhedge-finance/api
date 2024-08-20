@@ -12,9 +12,13 @@ export class WithdrawRequest {
 
   @Column()
   @Property()
-  product: string;
+  amountPtUnwindPrice: number;
 
   @Column()
   @Property()
-  current_token_id: string;
+  amountOptionUnwindPrice: number;
+
+  @Column()
+  @Property()
+  isTransferred: boolean = false;
 }

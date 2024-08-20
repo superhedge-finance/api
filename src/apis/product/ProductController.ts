@@ -36,24 +36,25 @@ export class ProductController {
     await this.productService.syncProducts(chainId, pastEvents);
   }
 
-  @Post("/request-withdraw")
-  async requestWithdraw(
-    @BodyParams("address") address: string,
-    @BodyParams("product") product: string,
-    @QueryParams("chainId") chainId: number,
-  ): Promise<void> {
-    const currentTokenId = await this.contractService.validateWithdrawRequest(chainId, address, product);
-    return this.productService.requestWithdraw(address, product, currentTokenId);
-  }
+  // @Post("/request-withdraw")
+  // async requestWithdraw(
+  //   @BodyParams("address") address: string,
+  //   @BodyParams("product") product: string,
+  //   @QueryParams("chainId") chainId: number,
+  // ): Promise<void> {
+  //   // const currentTokenId = await this.contractService.validateWithdrawRequest(chainId, address, product);
+  //   const currentTokenId = "56"
+  //   return this.productService.requestWithdraw(address, product, currentTokenId);
+  // }
 
-  @Post("/cancel-withdraw")
-  async cancelWithdraw(
-    @BodyParams("address") address: string,
-    @BodyParams("product") product: string,
-    @QueryParams("chainId") chainId: number,
-  ): Promise<void> {
-    return this.productService.cancelWithdraw(chainId, address, product);
-  }
+  // @Post("/cancel-withdraw")
+  // async cancelWithdraw(
+  //   @BodyParams("address") address: string,
+  //   @BodyParams("product") product: string,
+  //   @QueryParams("chainId") chainId: number,
+  // ): Promise<void> {
+  //   return this.productService.cancelWithdraw(chainId, address, product);
+  // }
 
   // @Get("/get-holder-list")
   // @Returns(200, holders)
@@ -133,6 +134,20 @@ export class ProductController {
   ): Promise<{userOptionPosition: number}>{
     return this.productService.getUserOptionPosition(chainId,walletAddress,productAddress,noOfBlock,totalOptionPosition);
   }
+
+  @Post("/get-pt-and-position")
+  // @Returns(200,"Failed")
+  async getPtAndOption(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("walletAddress") walletAddress: string,
+    @QueryParams("productAddress") productAddress: string,
+    @QueryParams("noOfBlock") noOfBlock: number,
+    @QueryParams("totalOptionPosition") totalOptionPosition: number
+  ): Promise<{amountToken: number, amountOption:number}>{
+    return this.productService.getPtAndOption(chainId,walletAddress,productAddress,noOfBlock,totalOptionPosition);
+  }
+
+
 
 }
 
