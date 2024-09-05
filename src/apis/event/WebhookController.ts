@@ -2,7 +2,8 @@
 import { Controller, Post, BodyParams, Res } from "@tsed/common";
 import { Response } from "express";
 import { Inject, Injectable } from "@tsed/di";
-import { WebhookService } from "./webhookService";
+// import { WebhookService } from "./webhookService";
+import { WebhookService } from "./services/WebhookService";
 import { BigNumber, ethers, FixedNumber, Contract , Wallet} from "ethers";
 import Web3 from 'web3';
 
