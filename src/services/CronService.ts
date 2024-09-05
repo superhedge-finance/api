@@ -28,6 +28,7 @@ export class CronService {
     // https://crontab.guru/#*/3_*_*_*_* (At every 3th minute)
     cron.schedule("*/3 * * * *", async () => {
       for (const chainId of SUPPORT_CHAINS) {
+        console.log("Saving")
         const lastBlockNumber = await this.contractService.getLatestBlockNumber(chainId);
         const pastEvents = await this.contractService.getPastEvents(chainId, "ProductCreated", lastBlockNumber - 50, lastBlockNumber);
         await this.productService.syncProducts(chainId, pastEvents);

@@ -17,6 +17,7 @@ export class ContractService {
   constructor() {
     for (const chainId of SUPPORT_CHAINS) {
       this.provider[chainId] = new ethers.providers.StaticJsonRpcProvider(RPC_PROVIDERS[chainId]);
+      // console.log("SH_FACTORY_ADDRESS[chainId]", SH_FACTORY_ADDRESS[chainId])
       this.factoryContract[chainId] = new ethers.Contract(SH_FACTORY_ADDRESS[chainId], FACTORY_ABI, this.provider[chainId]);
       this.marketplaceContract[chainId] = new ethers.Contract(
         MARKETPLACE_ADDRESS[chainId] as string,
@@ -46,9 +47,13 @@ export class ContractService {
     eventNames: string[],
     callback: (eventName: string, event: any) => void,
   ) {
+    // console.log(productAddress)
     const productContract = new ethers.Contract(productAddress, PRODUCT_ABI, this.provider[chainId]);
+    
     for (const eventName of eventNames) {
+      // console.log(productContract)
       productContract.on(eventName, (...event) => {
+        // console.log(eventName)
         callback(eventName, event[event.length - 1]);
       });
     }

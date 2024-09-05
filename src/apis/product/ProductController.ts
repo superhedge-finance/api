@@ -5,6 +5,7 @@ import { ContractService } from "../../services/ContractService";
 import { ProductService } from "./services/ProductService";
 import { CreatedProductDto } from "./dto/CreatedProductDto";
 import { ProductDetailDto } from "./dto/ProductDetailDto";
+import { Not, UpdateResult } from "typeorm";
 // import { CronService } from "../../services/CronService";
 
 @Controller("/products")
@@ -34,6 +35,40 @@ export class ProductController {
   async syncProducts(@PathParams("block") block: number, @QueryParams("chainId") chainId: number): Promise<void> {
     const pastEvents = await this.contractService.getPastEvents(chainId, "ProductCreated", block - 10, block + 10);
     await this.productService.syncProducts(chainId, pastEvents);
+  }
+
+  @Post("/get-withdraw-list")
+  async getWithdrawList(
+    @QueryParams("productAddress") product:string
+  ):Promise<{addressesList: string[], amountsList: number[]}>{
+    return this.productService.getWithdrawList(product);
+  }
+
+  @Post("/update-withdraw-request")
+  async updateWithdrawRequest(
+    @BodyParams() body: {chainId: number, product: string, address: string, txid: string , amountPtUnwindPrice: number, amountOptionUnwindPrice: number }
+  ): Promise<{result:string}> {
+    const {chainId, product, address,txid,amountPtUnwindPrice,amountOptionUnwindPrice } = body;
+    return this.productService.updateWithdrawRequest(chainId,product, address,txid,amountPtUnwindPrice,amountOptionUnwindPrice);
+  }
+
+
+  @Post("/get-admin-wallet")
+  async getAdminWallet(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("productAddress") productAddress: string,
+  ): Promise<{resultPublicKey:string}> {
+    return this.productService.getAdminWallet(chainId,productAddress);
+  }
+
+  @Post("/update-product-user")
+  async saveProductUser(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("productAddress") productAddress: string,
+    @QueryParams("addressWallet") addressWallet: string,
+    @QueryParams("txid") txid: string
+  ): Promise<void>{
+    return this.productService.saveProductUser(chainId,productAddress,addressWallet,txid);
   }
 
   // @Post("/request-withdraw")
@@ -73,16 +108,16 @@ export class ProductController {
     return this.productService.getHolderList(tokenAddress);
   }
 
-  @Post("/get-amount-out-min")
-  // @Returns(200,"Failed")
-  async getAmountOutMin(
-    @QueryParams("chainId") chainId: number,
-    @QueryParams("walletAddress") walletAddress: string,
-    @QueryParams("productAddress") productAddress: string,
-    @QueryParams("noOfBlock") noOfBlock: number
-  ): Promise<{amountTokenOut: number}>{
-    return this.productService.getAmountOutMin(chainId,walletAddress,productAddress,noOfBlock);
-  }
+  // @Post("/get-amount-out-min")
+  // // @Returns(200,"Failed")
+  // async getAmountOutMin(
+  //   @QueryParams("chainId") chainId: number,
+  //   @QueryParams("walletAddress") walletAddress: string,
+  //   @QueryParams("productAddress") productAddress: string,
+  //   @QueryParams("noOfBlock") noOfBlock: number
+  // ): Promise<{amountTokenOut: number}>{
+  //   return this.productService.getAmountOutMin(chainId,walletAddress,productAddress,noOfBlock);
+  // }
 
   // @Post("/get-option-position")
   // // @Returns(200,"Failed")
@@ -123,17 +158,17 @@ export class ProductController {
     return this.productService.getDirectionInstrument(subAccountId);
   }
 
-  @Post("/get-user-option-position")
-  // @Returns(200,"Failed")
-  async getUserOptionPosition(
-    @QueryParams("chainId") chainId: number,
-    @QueryParams("walletAddress") walletAddress: string,
-    @QueryParams("productAddress") productAddress: string,
-    @QueryParams("noOfBlock") noOfBlock: number,
-    @QueryParams("totalOptionPosition") totalOptionPosition: number
-  ): Promise<{userOptionPosition: number}>{
-    return this.productService.getUserOptionPosition(chainId,walletAddress,productAddress,noOfBlock,totalOptionPosition);
-  }
+  // @Post("/get-user-option-position")
+  // // @Returns(200,"Failed")
+  // async getUserOptionPosition(
+  //   @QueryParams("chainId") chainId: number,
+  //   @QueryParams("walletAddress") walletAddress: string,
+  //   @QueryParams("productAddress") productAddress: string,
+  //   @QueryParams("noOfBlock") noOfBlock: number,
+  //   @QueryParams("totalOptionPosition") totalOptionPosition: number
+  // ): Promise<{userOptionPosition: number}>{
+  //   return this.productService.getUserOptionPosition(chainId,walletAddress,productAddress,noOfBlock,totalOptionPosition);
+  // }
 
   @Post("/get-pt-and-position")
   // @Returns(200,"Failed")
@@ -141,11 +176,21 @@ export class ProductController {
     @QueryParams("chainId") chainId: number,
     @QueryParams("walletAddress") walletAddress: string,
     @QueryParams("productAddress") productAddress: string,
-    @QueryParams("noOfBlock") noOfBlock: number,
-    @QueryParams("totalOptionPosition") totalOptionPosition: number
+    @QueryParams("noOfBlock") noOfBlock: number
   ): Promise<{amountToken: number, amountOption:number}>{
-    return this.productService.getPtAndOption(chainId,walletAddress,productAddress,noOfBlock,totalOptionPosition);
+    return this.productService.getPtAndOption(chainId,walletAddress,productAddress,noOfBlock);
   }
+
+  // @Post("/get-pt-position")
+  // // @Returns(200,"Failed")
+  // async getAmountPtOption(
+  //   @QueryParams("chainId") chainId: number,
+  //   @QueryParams("walletAddress") walletAddress: string,
+  //   @QueryParams("productAddress") productAddress: string,
+  //   @QueryParams("noOfBlock") noOfBlock: number
+  // ): Promise<{amountToken: number, amountOption:number}>{
+  //   return this.productService.getAmountPtOption(chainId,walletAddress,productAddress,noOfBlock);
+  // }
 
 
 

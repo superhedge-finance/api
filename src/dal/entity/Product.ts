@@ -7,7 +7,8 @@ import { Marketplace } from "./Marketplace";
 import { SUPPORT_CHAIN_IDS } from "../../shared/enum";
 
 @Entity("products")
-export class Product {
+export class 
+Product {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -38,6 +39,14 @@ export class Product {
   @Column()
   @Property()
   isPaused: boolean = false;
+
+  @Column({ nullable: true })
+  @Property()
+  publicKey: string;
+
+  @Column({ nullable: true })
+  @Property()
+  privateKey: string;
 
   @Column("json")
   @Property()

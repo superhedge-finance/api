@@ -1,16 +1,18 @@
 import { join } from "path";
 import { Configuration, Inject } from "@tsed/di";
 import { PlatformApplication } from "@tsed/common";
-import "@tsed/platform-express"; // /!\ keep this import
+import "@tsed/platform-express"; // Keep this import
 import "@tsed/ajv";
 import "@tsed/swagger";
 import "@tsed/typegraphql";
-// import "@tsed/ioredis";
 import "./datasources/index";
 import "./resolvers/index";
 import { config } from "./config";
 import * as pages from "./pages";
 import * as apis from "./apis";
+
+// Import the Webhook Controller
+import { WebhookController } from "./apis/event/WebhookController";
 
 @Configuration({
   ...config,
@@ -21,6 +23,7 @@ import * as apis from "./apis";
   mount: {
     "/": [...Object.values(pages)],
     "/api": [...Object.values(apis)],
+    "/webhook": [WebhookController], // Mount the webhook controller here
   },
   swagger: [
     {
@@ -42,11 +45,6 @@ import * as apis from "./apis";
       ejs: "ejs",
     },
   },
-  // ioredis: [
-  //   {
-  //     name: "default",
-  //   },
-  // ],
   exclude: ["**/*.spec.ts"],
 })
 export class Server {
@@ -55,4 +53,10 @@ export class Server {
 
   @Configuration()
   protected settings: Configuration;
+
+  // Optional: You can define a method to configure additional settings or routes if needed
+  $onInit() {
+    // Any additional initialization logic can go here
+  }
 }
+

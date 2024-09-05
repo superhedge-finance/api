@@ -25,4 +25,11 @@ export class CreatedProductDto {
 
   @Property()
   issuanceCycle: CycleDto;
+
+  @Property()
+  publicKey: string;
+
+  @Property()
+  privateKey: string;
+
 }
