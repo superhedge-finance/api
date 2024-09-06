@@ -1,7 +1,7 @@
 import { Controller, Inject } from "@tsed/di";
 import { ContractService } from "../../services/ContractService";
 import { ProductService } from "../product/services/ProductService";
-import { HistoryRepository, MarketplaceRepository, UserRepository, Product } from "../../dal";
+import { HistoryRepository, UserRepository, Product } from "../../dal";
 import { HISTORY_TYPE, WITHDRAW_TYPE } from "../../shared/enum";
 import { DECIMAL, SUPPORT_CHAINS } from "../../shared/constants";
 import { ethers, constants } from "ethers";
@@ -20,9 +20,6 @@ export class EventsController {
 
   @Inject(UserRepository)
   private readonly userRepository: UserRepository;
-
-  @Inject(MarketplaceRepository)
-  private readonly marketplaceRepository: MarketplaceRepository;
 
   $onInit() {
     // listen to get transaction from on chain event
@@ -45,29 +42,6 @@ export class EventsController {
         this.productService.updateProductName(chainId, event[0], event[1]).then(() => {
           console.log("Product name was updated")
         });
-      });
-      // Listen Position transfer event
-      this.contractService.subscribeToTransferEvent(chainId, "TransferSingle", (event) => {
-        if(event.args.from != constants.AddressZero && event.args.to != constants.AddressZero) {
-          const value = event.args.value;
-          const amountInDecimal = parseInt(value) * 1000;
-          const amount = ethers.utils.parseUnits(amountInDecimal.toString(), DECIMAL[chainId]);
-          this.historyRepository
-            .createHistory(
-              chainId,
-              event.args.to,
-              amount,
-              event.transactionHash,
-              event.logIndex,
-              HISTORY_TYPE.TRANSFER,
-              WITHDRAW_TYPE.NONE,
-              0,
-              event.args.id,
-              event.args.value,
-              event.args.from
-            )
-            .then(() => console.log("Transfer History saved"));
-        }
       });
 
       console.log("getProductsWithoutStatus")
@@ -156,23 +130,23 @@ export class EventsController {
                 });
               }
 
-              if (eventName === "Mature") {
-                this.marketplaceRepository
-                  .find({
-                    where: {
-                      chainId: chainId,
-                      product_address: product.address,
-                    },
-                  })
-                  .then((marketplaceEntities) => {
-                    for (const marketplaceEntity of marketplaceEntities) {
-                      marketplaceEntity.isExpired = true;
-                      this.marketplaceRepository.save(marketplaceEntity).then(
-                        () => console.log("Marketplace entity updated")
-                      );
-                    }
-                  });
-              }
+              // if (eventName === "Mature") {
+              //   this.marketplaceRepository
+              //     .find({
+              //       where: {
+              //         chainId: chainId,
+              //         product_address: product.address,
+              //       },
+              //     })
+              //     .then((marketplaceEntities) => {
+              //       for (const marketplaceEntity of marketplaceEntities) {
+              //         marketplaceEntity.isExpired = true;
+              //         this.marketplaceRepository.save(marketplaceEntity).then(
+              //           () => console.log("Marketplace entity updated")
+              //         );
+              //       }
+              //     });
+              // }
             },
           );
         });
