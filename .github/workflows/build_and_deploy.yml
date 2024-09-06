@@ -19,20 +19,20 @@ jobs:
           known_hosts: "!"
 
       - name: Add Known Hosts
-        run: ssh-keyscan -H 34.122.201.69 > ~/.ssh/known_hosts
+        run: ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
 
       - name: Checkout Repository
         uses: actions/checkout@v3
 
       - name: Upload Source Files
-        run: rsync -avzr --exclude .github --exclude node_modules --del ./ agent@34.122.201.69:/home/agent/superhedge/superhedge-api/
+        run: rsync -avzr --exclude .github --exclude node_modules --del ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/superhedge/superhedge-api/
 
       - name: Build Image
-        run: ssh -T agent@34.122.201.69 "docker build -t superhedge/api --build-arg http_proxy --build-arg https_proxy --build-arg no_proxy /home/agent/superhedge/superhedge-api/"
+        run: ssh -T ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "docker build -t superhedge/api --build-arg http_proxy --build-arg https_proxy --build-arg no_proxy /home/${{ secrets.SSH_USER }}/superhedge/superhedge-api/"
 
       - name: Restart Container
         run: |
-          ssh -T agent@34.122.201.69 \
+          ssh -T ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
           "
           docker stop superhedge_api
           docker rm superhedge_api
