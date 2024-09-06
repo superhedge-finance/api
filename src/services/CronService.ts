@@ -28,10 +28,10 @@ export class CronService {
     // https://crontab.guru/#*/3_*_*_*_* (At every 3th minute)
     cron.schedule("*/3 * * * *", async () => {
       for (const chainId of SUPPORT_CHAINS) {
+        console.log("Saving")
         const lastBlockNumber = await this.contractService.getLatestBlockNumber(chainId);
         const pastEvents = await this.contractService.getPastEvents(chainId, "ProductCreated", lastBlockNumber - 50, lastBlockNumber);
         await this.productService.syncProducts(chainId, pastEvents);
-
         const products = await this.productService.getProductsWithoutStatus(chainId);
         for (const product of products) {
           const stats = await this.contractService.getProductStats(chainId, product.address);
@@ -73,14 +73,14 @@ export class CronService {
           );
           await this.productService.syncHistories(chainId, product.id, HISTORY_TYPE.WITHDRAW, withdrawOptionEvents, WITHDRAW_TYPE.OPTION);
           
-          const weeklyCouponEvents = await this.contractService.getProductPastEvents(
-            chainId,
-            product.address,
-            "WeeklyCoupon",
-            lastBlockNumber - 50,
-            lastBlockNumber,
-          );
-          await this.productService.syncHistories(chainId, product.id, HISTORY_TYPE.WEEKLY_COUPON, weeklyCouponEvents);
+          // const weeklyCouponEvents = await this.contractService.getProductPastEvents(
+          //   chainId,
+          //   product.address,
+          //   "WeeklyCoupon",
+          //   lastBlockNumber - 50,
+          //   lastBlockNumber,
+          // );
+          // await this.productService.syncHistories(chainId, product.id, HISTORY_TYPE.WEEKLY_COUPON, weeklyCouponEvents);
 
           const OptionPayoutEvents = await this.contractService.getProductPastEvents(
             chainId,

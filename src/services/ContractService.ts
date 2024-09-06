@@ -17,6 +17,7 @@ export class ContractService {
   constructor() {
     for (const chainId of SUPPORT_CHAINS) {
       this.provider[chainId] = new ethers.providers.StaticJsonRpcProvider(RPC_PROVIDERS[chainId]);
+      // console.log("SH_FACTORY_ADDRESS[chainId]", SH_FACTORY_ADDRESS[chainId])
       this.factoryContract[chainId] = new ethers.Contract(SH_FACTORY_ADDRESS[chainId], FACTORY_ABI, this.provider[chainId]);
       this.marketplaceContract[chainId] = new ethers.Contract(
         MARKETPLACE_ADDRESS[chainId] as string,
@@ -28,6 +29,7 @@ export class ContractService {
   }
 
   subscribeToEvents(chainId: number, eventName: string, callback: (event: any) => void) {
+    // console.log(this.factoryContract);
     this.factoryContract[chainId].on(eventName, (...event) => {
       callback(event);
     });
@@ -45,9 +47,13 @@ export class ContractService {
     eventNames: string[],
     callback: (eventName: string, event: any) => void,
   ) {
+    // console.log(productAddress)
     const productContract = new ethers.Contract(productAddress, PRODUCT_ABI, this.provider[chainId]);
+    
     for (const eventName of eventNames) {
+      // console.log(productContract)
       productContract.on(eventName, (...event) => {
+        // console.log(eventName)
         callback(eventName, event[event.length - 1]);
       });
     }
@@ -96,7 +102,9 @@ export class ContractService {
         issuanceDate: _issuanceCycle.issuanceDate.toNumber(),
         maturityDate: _issuanceCycle.maturityDate.toNumber(),
         apy: _issuanceCycle.apy,
-        url: _issuanceCycle.uri
+        underlyingSpotRef: _issuanceCycle.underlyingSpotRef.toNumber(),
+        optionMinOrderSize: _issuanceCycle.optionMinOrderSize.toNumber(),
+        subAccountId: _issuanceCycle.subAccountId
       },
     };
   }

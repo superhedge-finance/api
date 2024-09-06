@@ -30,6 +30,7 @@ export class UserService {
   }
 
   async getPositions(chainId: number, address: string): Promise<Array<Product>> {
+    console.log("paul")
     const user = await this.userRepository.findOne({ where: { address } });
     if (!user) {
       await this.create({ address, username: "", email: "", subscribed: false });

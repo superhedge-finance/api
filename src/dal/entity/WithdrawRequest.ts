@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column , CreateDateColumn, UpdateDateColumn} from "typeorm";
 import { Property } from "@tsed/schema";
 
 @Entity("withdraw_requests")
@@ -8,13 +8,40 @@ export class WithdrawRequest {
 
   @Column()
   @Property()
-  address: string;
-
-  @Column()
-  @Property()
   product: string;
 
   @Column()
   @Property()
-  current_token_id: string;
+  address: string;
+
+  @Column({ nullable: true })
+  @Property()
+  txid: string;
+
+  @Column({ nullable: true })
+  @Property()
+  status: string;
+
+  @Column()
+  @Property()
+  amountPtUnwindPrice: number;
+
+  @Column()
+  @Property()
+  amountOptionUnwindPrice: number;
+
+  @Column()
+  @Property()
+  isTransferred: boolean = false;
+
+  @Column({ nullable: true })
+  @Property()
+  transferredTx: string;
+
+  @CreateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP(6)" })
+  public created_at: Date;
+
+  @UpdateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP(6)", onUpdate: "CURRENT_TIMESTAMP(6)" })
+  public updated_at: Date;
+
 }
