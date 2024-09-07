@@ -36,7 +36,7 @@ jobs:
           "
           docker stop superhedge_api
           docker rm superhedge_api
-          docker run -d --name superhedge_api --restart unless-stopped --network superhedge --log-driver gcplogs \\
+          docker run -d --name superhedge_api --restart unless-stopped --network superhedge -p 127.0.0.1:8080:80 -p '[::1]:8080:80' --log-driver gcplogs \\
             -v /home/${{ secrets.SSH_USER }}/superhedge/storage:/superhedge_storage \\
             -e DATABASE_HOST=${{ secrets.DATABASE_HOST }} \\
             -e DATABASE_NAME=${{ secrets.DATABASE_NAME }} \\
