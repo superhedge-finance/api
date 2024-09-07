@@ -28,7 +28,7 @@ jobs:
         run: rsync -avzr --exclude .github --exclude node_modules --del ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/superhedge/superhedge-api/
 
       - name: Build Image
-        run: ssh -T ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "docker build -t superhedge/api /home/${{ secrets.SSH_USER }}/superhedge/superhedge-api/"
+        run: ssh -T ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "docker build -t superhedge/api --build-arg http_proxy --build-arg https_proxy --build-arg no_proxy /home/${{ secrets.SSH_USER }}/superhedge/superhedge-api/"
 
       - name: Restart Container
         run: |
