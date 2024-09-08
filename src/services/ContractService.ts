@@ -3,7 +3,9 @@ import { BigNumber, Contract, ethers } from "ethers";
 import { CreatedProductDto, StatsDto } from "../apis";
 import FACTORY_ABI from "./abis/SHFactory.json";
 import PRODUCT_ABI from "./abis/SHProduct.json";
-import { RPC_PROVIDERS, SH_FACTORY_ADDRESS, SUPPORT_CHAINS } from "../shared/constants";
+import NFT_ABI from "./abis/SHNFT.json";
+import MARKETPLACE_ABI from "./abis/SHMarketplace.json";
+import { MARKETPLACE_ADDRESS, RPC_PROVIDERS, SH_FACTORY_ADDRESS, NFT_ADDRESS, SUPPORT_CHAINS } from "../shared/constants";
 
 @Injectable()
 export class ContractService {
@@ -17,6 +19,12 @@ export class ContractService {
       this.provider[chainId] = new ethers.providers.StaticJsonRpcProvider(RPC_PROVIDERS[chainId]);
       // console.log("SH_FACTORY_ADDRESS[chainId]", SH_FACTORY_ADDRESS[chainId])
       this.factoryContract[chainId] = new ethers.Contract(SH_FACTORY_ADDRESS[chainId], FACTORY_ABI, this.provider[chainId]);
+      this.marketplaceContract[chainId] = new ethers.Contract(
+        MARKETPLACE_ADDRESS[chainId] as string,
+        MARKETPLACE_ABI,
+        this.provider[chainId],
+      );
+      this.nftContract[chainId] = new ethers.Contract(NFT_ADDRESS[chainId], NFT_ABI, this.provider[chainId]);
     }
   }
 
@@ -24,6 +32,12 @@ export class ContractService {
     // console.log(this.factoryContract);
     this.factoryContract[chainId].on(eventName, (...event) => {
       callback(event);
+    });
+  }
+
+  subscribeToTransferEvent(chainId: number, eventName: string, callback: (event: any) =>  void) {
+    this.nftContract[chainId].on(eventName, (...event) => {
+      callback(event[event.length - 1]);
     });
   }
 
@@ -40,6 +54,15 @@ export class ContractService {
       // console.log(productContract)
       productContract.on(eventName, (...event) => {
         // console.log(eventName)
+        callback(eventName, event[event.length - 1]);
+      });
+    }
+  }
+
+  subscribeToMarketplaceEvents(chainId: number, eventNames: string[], callback: (eventName: string, event: any) => void) {
+    const marketplaceContract = new ethers.Contract(MARKETPLACE_ADDRESS[chainId], MARKETPLACE_ABI, this.provider[chainId]);
+    for (const eventName of eventNames) {
+      marketplaceContract.on(eventName, (...event) => {
         callback(eventName, event[event.length - 1]);
       });
     }
