@@ -17,7 +17,8 @@ import { WebhookController } from "./apis/event/WebhookController";
 @Configuration({
   ...config,
   acceptMimes: ["application/json", "image/png", "text/csv"],
-  httpPort: process.env.PORT || 3000,
+  // httpPort: process.env.PORT || 3000,
+  httpPort: "0.0.0.0:3000",
   httpsPort: false, // CHANGE
   componentsScan: false,
   mount: {
