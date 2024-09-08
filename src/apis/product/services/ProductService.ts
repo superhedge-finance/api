@@ -447,24 +447,6 @@ export class ProductService {
     return { balanceToken, ownerAddress }
   }
 
-  // async getAmountPtOption(chainId: number,walletAddress: string, productAddress: string,noOfBlock: number): Promise<{amountToken: number, amountOption:number}>
-  // {
-  //   let amountToken = 0
-  //   let amountOption = 0
-
-  //   const ethers = require('ethers');
-  //   const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
-  //   const _productContract = new ethers.Contract(productAddress, PRODUCT_ABI, provider);
-  //   const issuanceCycle = await _productContract.issuanceCycle()
-
-  //   const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuanceCycle.subAccountId)
-  //   const response = await this.getTotalOptionPosition(instrumentArray, directionArray)
-
-  //   console.log(response.totalAmountPosition)
-
-  //   return {amountToken,amountOption}
-  // }
-
   async getPtAndOption(chainId: number,walletAddress: string, productAddress: string,noOfBlock: number): Promise<{amountToken: number, amountOption:number}>
   {
     console.log('Paul')
@@ -549,64 +531,6 @@ export class ProductService {
 
     return {amountToken,amountOption}
   }
-
-  // async getAmountOutMin(chainId: number,walletAddress: string, productAddress: string,noOfBlock: number): Promise<{amountTokenOut: number}>
-  // {
-  //   let amountTokenOut = 0
-  //   const ethers = require('ethers');
-  //   const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
-  //   const _productContract = new ethers.Contract(productAddress, PRODUCT_ABI, provider);
-  //   const _tokenAddress = await _productContract.tokenAddress()
-  //   console.log(_tokenAddress)
-    
-  //   const _tokenAddressInstance = new ethers.Contract(_tokenAddress, ERC20_ABI, provider)
-  //   const _tokenDecimals = await _tokenAddressInstance.decimals()
-  //   const _tokenBalance = await _tokenAddressInstance.balanceOf(walletAddress)
-  //   const tokenBalance = await Number(ethers.utils.formatUnits(_tokenBalance,0))
-    
-  //   // PT Token
-  //   const _ptAddress = await _productContract.PT()
-  //   const _ptAddressInstance = new ethers.Contract(_ptAddress, PT_ABI, provider)
-  //   const _ptBalance = await _ptAddressInstance.balanceOf(productAddress)
-  //   const _ptTotal = await Number(ethers.utils.formatUnits(_ptBalance,0))
-
-  //   const _totalCurrentSupply = await _productContract.totalCurrentSupply()
-  //   const totalCurrentSupply = await Number(ethers.utils.formatUnits(_totalCurrentSupply,0))
-
-  //   const product = await this.productRepository.findOne({
-  //     where: {
-  //       address: productAddress,
-  //       chainId: chainId,
-  //       isPaused: false,
-  //     },
-  //   });
-  //   const issuance = product!.issuanceCycle
-   
-  //   const underlyingSpotRef = issuance.underlyingSpotRef
-  //   const optionMinOrderSize = (issuance.optionMinOrderSize) / 10
-  //   const withdrawBlockSize = underlyingSpotRef * optionMinOrderSize
-
-  //   const early_withdraw_balance_user = (noOfBlock * withdrawBlockSize) * 10**(_tokenDecimals)
-  //   const total_user_block = tokenBalance/withdrawBlockSize
-
-  //   if(total_user_block>=noOfBlock)
-  //   {
-  //     const alocation  = early_withdraw_balance_user / totalCurrentSupply
-  //     const _amountOutMin = Math.round(_ptTotal * alocation)
-  //     const _marketAddrress = await _productContract.market()
-  //     const _currency = await _productContract.currencyAddress()
-  //     const url = `https://api-v2.pendle.finance/sdk/api/v1/swapExactPtForToken?chainId=42161&receiverAddr=${address}&marketAddr=${_marketAddrress}&amountPtIn=${_amountOutMin}&tokenOutAddr=${_currency}&slippage=0.002`;
-  //     const response = await fetch(url);
-  //     const params = await response.json();
-  //     console.log('amountTokenOut')
-  //     console.log(params.data.amountTokenOut)
-  //     console.log(typeof params.data.amountTokenOut)
-  //     amountTokenOut = params.data.amountTokenOut
-  //   }
-
-  //   return {amountTokenOut}
-    
-  // }
   
   async getDirectionInstrument(subAccountId: string): Promise<{instrumentArray: string[], directionArray: string[] }> {
     return new Promise((resolve, reject) => {
