@@ -13,6 +13,8 @@ import {
   WithdrawRequestRepository,
   HistoryRepository,
   History,
+  MarketplaceRepository,
+  Marketplace,
 } from "./dal";
 
 registerProvider({
@@ -51,10 +53,10 @@ registerProvider({
   useValue: new HistoryRepository(History, SuperHedgeDataSource.createEntityManager()),
 });
 
-// registerProvider({
-//   provide: MarketplaceRepository,
-//   useValue: new MarketplaceRepository(Marketplace, SuperHedgeDataSource.createEntityManager()),
-// });
+registerProvider({
+  provide: MarketplaceRepository,
+  useValue: new MarketplaceRepository(Marketplace, SuperHedgeDataSource.createEntityManager()),
+});
 
 async function bootstrap() {
   try {

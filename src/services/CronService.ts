@@ -4,7 +4,7 @@ import { Inject, Injectable } from "@tsed/di";
 import { ContractService } from "./ContractService";
 import { ProductService } from "../apis/product/services/ProductService";
 import { HISTORY_TYPE, WITHDRAW_TYPE } from "../shared/enum";
-import {UserRepository, Product } from "../dal";
+import { MarketplaceRepository, UserRepository, Product } from "../dal";
 import { SUPPORT_CHAINS } from "../shared/constants";
 
 @Injectable()
@@ -18,8 +18,8 @@ export class CronService {
   @Inject()
   private readonly productService: ProductService;
 
-  // @Inject(MarketplaceRepository)
-  // private readonly marketplaceRepository: MarketplaceRepository;
+  @Inject(MarketplaceRepository)
+  private readonly marketplaceRepository: MarketplaceRepository;
 
   @Inject(UserRepository)
   private readonly userRepository: UserRepository;
@@ -98,119 +98,119 @@ export class CronService {
             lastBlockNumber - 50,
             lastBlockNumber,
           );
-          // if (matureEvents.length > 0) {
-          //   const marketplaceEntities = await this.marketplaceRepository.find({
-          //     where: {
-          //       product_address: product.address,
-          //     },
-          //   });
-          //   for (const marketplaceEntity of marketplaceEntities) {
-          //     marketplaceEntity.isExpired = true;
-          //     await this.marketplaceRepository.save(marketplaceEntity);
-          //   }
-          // }
+          if (matureEvents.length > 0) {
+            const marketplaceEntities = await this.marketplaceRepository.find({
+              where: {
+                product_address: product.address,
+              },
+            });
+            for (const marketplaceEntity of marketplaceEntities) {
+              marketplaceEntity.isExpired = true;
+              await this.marketplaceRepository.save(marketplaceEntity);
+            }
+          }
         }
       }
     });
 
-    // cron.schedule("*/3 * * * *", async () => {
-    //   for (const chainId of SUPPORT_CHAINS) {
-    //     const lastBlockNumber = await this.contractService.getLatestBlockNumber(chainId);
+    cron.schedule("*/3 * * * *", async () => {
+      for (const chainId of SUPPORT_CHAINS) {
+        const lastBlockNumber = await this.contractService.getLatestBlockNumber(chainId);
 
-    //     const pastItemListedEvents = await this.contractService.getMarketplacePastEvents(
-    //       chainId,
-    //       "ItemListed",
-    //       lastBlockNumber - 50,
-    //       lastBlockNumber,
-    //     );
-    //     for (const event of pastItemListedEvents) {
-    //       if (event.args) {
-    //         await this.marketplaceRepository.syncItemListedEntity(
-    //           chainId,
-    //           event.args.owner,
-    //           event.args.nft,
-    //           event.args.product,
-    //           event.args.tokenId,
-    //           event.args.quantity,
-    //           event.args.payToken,
-    //           event.args.pricePerItem,
-    //           event.args.startingTime,
-    //           event.args.listingId,
-    //           event.transactionHash,
-    //         );
-    //       }
-    //     }
+        const pastItemListedEvents = await this.contractService.getMarketplacePastEvents(
+          chainId,
+          "ItemListed",
+          lastBlockNumber - 50,
+          lastBlockNumber,
+        );
+        for (const event of pastItemListedEvents) {
+          if (event.args) {
+            await this.marketplaceRepository.syncItemListedEntity(
+              chainId,
+              event.args.owner,
+              event.args.nft,
+              event.args.product,
+              event.args.tokenId,
+              event.args.quantity,
+              event.args.payToken,
+              event.args.pricePerItem,
+              event.args.startingTime,
+              event.args.listingId,
+              event.transactionHash,
+            );
+          }
+        }
 
-    //     const pastItemSoldEvents = await this.contractService.getMarketplacePastEvents(
-    //       chainId,
-    //       "ItemSold",
-    //       lastBlockNumber - 50,
-    //       lastBlockNumber,
-    //     );
-    //     for (const event of pastItemSoldEvents) {
-    //       if (event.args) {
-    //         const listingId = event.args.listingId;
-    //         const buyer = event.args.buyer;
-    //         const seller = event.args.seller;
-    //         const marketplace = await this.marketplaceRepository
-    //           .createQueryBuilder("marketplace")
-    //           .where("marketplace.listing_id = :listingId", { listingId: listingId.toString() })
-    //           .leftJoinAndMapOne("marketplace.product", Product, "product", "marketplace.product_address = product.address")
-    //           .getOne();
+        const pastItemSoldEvents = await this.contractService.getMarketplacePastEvents(
+          chainId,
+          "ItemSold",
+          lastBlockNumber - 50,
+          lastBlockNumber,
+        );
+        for (const event of pastItemSoldEvents) {
+          if (event.args) {
+            const listingId = event.args.listingId;
+            const buyer = event.args.buyer;
+            const seller = event.args.seller;
+            const marketplace = await this.marketplaceRepository
+              .createQueryBuilder("marketplace")
+              .where("marketplace.listing_id = :listingId", { listingId: listingId.toString() })
+              .leftJoinAndMapOne("marketplace.product", Product, "product", "marketplace.product_address = product.address")
+              .getOne();
 
-    //         if (!marketplace) return null;
+            if (!marketplace) return null;
 
-    //         await this.marketplaceRepository
-    //           .syncItemSoldEntity(
-    //             chainId,
-    //             event.args.seller,
-    //             event.args.buyer,
-    //             event.args.unitPrice,
-    //             event.args.listingId,
-    //             event.transactionHash,
-    //           )
-    //           .then(async () => {
-    //             await this.userRepository.saveProductId(buyer, marketplace.product.id);
+            await this.marketplaceRepository
+              .syncItemSoldEntity(
+                chainId,
+                event.args.seller,
+                event.args.buyer,
+                event.args.unitPrice,
+                event.args.listingId,
+                event.transactionHash,
+              )
+              .then(async () => {
+                await this.userRepository.saveProductId(buyer, marketplace.product.id);
 
-    //             const _principal = await this.contractService.getProductPrincipalBalance(chainId, seller, marketplace.product_address);
-    //             if (_principal) {
-    //               await this.userRepository.removeProductId(seller, marketplace.product.id);
-    //             }
-    //           });
-    //       }
-    //     }
+                const _principal = await this.contractService.getProductPrincipalBalance(chainId, seller, marketplace.product_address);
+                if (_principal) {
+                  await this.userRepository.removeProductId(seller, marketplace.product.id);
+                }
+              });
+          }
+        }
 
-    //     const pastItemCancelledEvents = await this.contractService.getMarketplacePastEvents(
-    //       chainId,
-    //       "ItemCanceled",
-    //       lastBlockNumber - 50,
-    //       lastBlockNumber,
-    //     );
-    //     for (const event of pastItemCancelledEvents) {
-    //       if (event.args) {
-    //         await this.marketplaceRepository.syncItemCanceledEntity(chainId, event.args.owner, event.args.listingId, event.transactionHash);
-    //       }
-    //     }
+        const pastItemCancelledEvents = await this.contractService.getMarketplacePastEvents(
+          chainId,
+          "ItemCanceled",
+          lastBlockNumber - 50,
+          lastBlockNumber,
+        );
+        for (const event of pastItemCancelledEvents) {
+          if (event.args) {
+            await this.marketplaceRepository.syncItemCanceledEntity(chainId, event.args.owner, event.args.listingId, event.transactionHash);
+          }
+        }
 
-    //     const pastItemUpdatedEvents = await this.contractService.getMarketplacePastEvents(
-    //       chainId,
-    //       "ItemUpdated",
-    //       lastBlockNumber - 50,
-    //       lastBlockNumber,
-    //     );
-    //     for (const event of pastItemUpdatedEvents) {
-    //       if (event.args) {
-    //         await this.marketplaceRepository.syncItemUpdatedEntity(
-    //           chainId,
-    //           event.args.owner,
-    //           event.args.payToken,
-    //           event.args.newPrice,
-    //           event.args.listingId,
-    //           event.transactionHash,
-    //         );
-    //       }
-    //     }
-    //   }
-    // });
+        const pastItemUpdatedEvents = await this.contractService.getMarketplacePastEvents(
+          chainId,
+          "ItemUpdated",
+          lastBlockNumber - 50,
+          lastBlockNumber,
+        );
+        for (const event of pastItemUpdatedEvents) {
+          if (event.args) {
+            await this.marketplaceRepository.syncItemUpdatedEntity(
+              chainId,
+              event.args.owner,
+              event.args.payToken,
+              event.args.newPrice,
+              event.args.listingId,
+              event.transactionHash,
+            );
+          }
+        }
+      }
+    });
   }
 }
