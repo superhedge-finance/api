@@ -13,20 +13,24 @@ export class WebhookController {
     @Inject()
     private readonly WebhookService: WebhookService;
 
-    @Post()
+    @Post("")
     async handleWebhook(@BodyParams() body: any, @Res() res: Response) {
     try {
         const providedSignature = res.req.headers["x-signature"]
         const generatedSignature= Web3.utils.sha3(JSON.stringify(res.req.body)+process.env.MORALIS_API_KEY)
-        if (body.confirmed && generatedSignature === providedSignature){
-            // console.log(res)
-            await this.WebhookService.handleWebhook(body)
+        // console.log(body)
+        if(body.abi.length != 0)
+        {
+            if (body.confirmed && generatedSignature === providedSignature)
+            {
+                await this.WebhookService.handleWebhook(body)
+            }
         }
     } catch (e) {
         console.error(e);
+        
         return res.status(400).json({ error: "Failed to process webhook" });
     }
     return res.status(200).json({ message: "Webhook received successfully" });
     }
-
 }

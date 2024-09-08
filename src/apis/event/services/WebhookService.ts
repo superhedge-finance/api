@@ -2,17 +2,6 @@ import { Inject, Injectable } from "@tsed/di";
 import { Not, UpdateResult } from "typeorm";
 import { BigNumber, ethers, FixedNumber, Contract , Wallet} from "ethers";
 import { History, Product, ProductRepository, WithdrawRequest,WithdrawRequestRepository,UserRepository } from "../../../dal";
-// import { CreatedProductDto } from "../dto/CreatedProductDto";
-// import { ProductDetailDto } from "../dto/ProductDetailDto";
-// import { CycleDto } from "../dto/CycleDto";
-// import { StatsDto } from "../dto/StatsDto";
-// import { HistoryRepository } from "../../../dal/repository/HistoryRepository";
-// import { HISTORY_TYPE, WITHDRAW_TYPE } from "../../../shared/enum";
-// import { DECIMAL } from "../../../shared/constants";
-// import { RPC_PROVIDERS, SUPPORT_CHAINS } from "../../../shared/constants";
-// import PRODUCT_ABI from "../../../services/abis/SHProduct.json";
-// import ERC20_ABI from "../../../services/abis/ERC20.json";
-// import PT_ABI from "../../../services/abis/PTToken.json";
 
 @Injectable()
 export class WebhookService {
