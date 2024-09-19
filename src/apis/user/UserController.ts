@@ -49,6 +49,7 @@ export class UserController {
     @QueryParams("sort") sort: number,
     @QueryParams("chainId") chainId: number,
   ): Promise<Array<HistoryResponseDto>> {
+    // console.log(this.userService.getHistories(chainId, address, sort))
     return this.userService.getHistories(chainId, address, sort);
   }
 }

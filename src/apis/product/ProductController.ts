@@ -103,9 +103,10 @@ export class ProductController {
   @Post("/get-holder-list")
   // @Returns(200, Array<{ balanceToken: number[], ownerAddress: string[] }>)
   async getHolderList(
-    @QueryParams("tokenAddress") tokenAddress: string
+    @QueryParams("tokenAddress") tokenAddress: string,
+    @QueryParams("chainId") chainId: number
   ): Promise<{ balanceToken: number[]; ownerAddress: string[] }> {
-    return this.productService.getHolderList(tokenAddress);
+    return this.productService.getHolderList(tokenAddress,chainId);
   }
 
   // @Post("/get-amount-out-min")
