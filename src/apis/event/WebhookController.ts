@@ -25,11 +25,17 @@ export class WebhookController {
                     await this.WebhookService.handleWebhook(body)
                 }
             }
+        else
+        {
+            if (generatedSignature === providedSignature)
+            {
+                return res.status(200).json({ message: "Webhook received successfully" });
+            }
+        }
     } catch (e) {
         console.error(e);
         return res.status(400).json({ error: "Failed to process webhook" });
     }
-    return res.status(200).json({ message: "Webhook received successfully" });
     }
 
 }

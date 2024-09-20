@@ -21,8 +21,8 @@ export const RPC_PROVIDERS: {[chainId: number]: string} = {
   [SUPPORT_CHAIN_IDS.MOONBEAM_ALPHA]: "https://rpc.api.moonbase.moonbeam.network",
   [SUPPORT_CHAIN_IDS.ARBITRUM_GOERLI]: "https://goerli-rollup.arbitrum.io/rpc",
   [SUPPORT_CHAIN_IDS.MANTLE_TESTNET]: "https://rpc.testnet.mantle.xyz",
-  // [SUPPORT_CHAIN_IDS.ARBITRUM]:"https://arb1.arbitrum.io/rpc",
-  [SUPPORT_CHAIN_IDS.ARBITRUM]:"https://site1.moralis-nodes.com/arbitrum/b7337e4749f147acbc6c199c28ef4bc4"
+  [SUPPORT_CHAIN_IDS.ARBITRUM]:"https://arb1.arbitrum.io/rpc",
+  // [SUPPORT_CHAIN_IDS.ARBITRUM]:"https://site1.moralis-nodes.com/arbitrum/b7337e4749f147acbc6c199c28ef4bc4"
 };
 
 export const DECIMAL: { [chainId: number]: number } = {

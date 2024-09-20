@@ -1,11 +1,12 @@
 import { Inject, Injectable } from "@tsed/di";
 import { Not, UpdateResult } from "typeorm";
-import { BigNumber, ethers, FixedNumber, Contract , Wallet} from "ethers";
+import { BigNumber, ethers, FixedNumber, Contract , Wallet, providers, utils} from "ethers";
 import { History, Product, ProductRepository, WithdrawRequest, WithdrawRequestRepository,UserRepository } from "../../../dal";
 import { CreatedProductDto } from "../dto/CreatedProductDto";
 import { ProductDetailDto } from "../dto/ProductDetailDto";
 import { CycleDto } from "../dto/CycleDto";
 import { StatsDto } from "../dto/StatsDto";
+import { AddressDto } from "../dto/AddressDto";
 import { HistoryRepository } from "../../../dal/repository/HistoryRepository";
 import { HISTORY_TYPE, WITHDRAW_TYPE } from "../../../shared/enum";
 import { DECIMAL } from "../../../shared/constants";
@@ -13,10 +14,7 @@ import { RPC_PROVIDERS, SUPPORT_CHAINS } from "../../../shared/constants";
 import PRODUCT_ABI from "../../../services/abis/SHProduct.json";
 import ERC20_ABI from "../../../services/abis/ERC20.json";
 import PT_ABI from "../../../services/abis/PTToken.json";
-
-const express = require("express")
-// Import Moralis
-const Moralis = require("moralis").default
+import Moralis from 'moralis';
 
 const WebSocketServer = require('ws');``
 
@@ -29,9 +27,11 @@ const unwindMargin = 0.1 //10%
 // const address = "0x457E474891f8e8248f906cd24c3ddC2AD7fc689a"
 // const chain = EvmChain.ETHEREUM
 
-// Moralis.start({
-//   apiKey: MORALIS_API_KEY,
-// })
+Moralis.start({
+  apiKey: process.env.MORALIS_API_KEY
+});
+const streamId = process.env.MORALIS_STREAM_ID
+// const ethers = require('ethers');
 
 @Injectable()
 export class ProductService {
@@ -60,7 +60,8 @@ export class ProductService {
     currentCapacity: string,
     cycle: CycleDto,
     privateKey: string,
-    publicKey: string
+    publicKey: string,
+    addressList: AddressDto,
   ): Promise<Product> {
     const entity = new Product();
     entity.chainId = chainId;
@@ -73,11 +74,14 @@ export class ProductService {
     entity.issuanceCycle = cycle;
     entity.privateKey = privateKey;
     entity.publicKey = publicKey;
+    entity.addressesList = addressList;
     return this.productRepository.save(entity);
   }
 
   getProductsWithoutStatus(chainId: number): Promise<Array<Product>> {
     return this.productRepository.find({
+      select: ["id", "name", "address","underlying","issuanceCycle", 
+        "status", "chainId","currentCapacity","maxCapacity"],
       where: {
         chainId: chainId,
         isPaused: false,
@@ -87,6 +91,8 @@ export class ProductService {
 
   getProducts(chainId: number): Promise<Array<Product>> {
     return this.productRepository.find({
+      select: ["id", "name", "address","underlying","issuanceCycle", 
+              "status", "chainId","currentCapacity","maxCapacity"],
       where: {
         status: Not(0),
         isPaused: false,
@@ -147,7 +153,8 @@ export class ProductService {
       mtmPrice: product.mtmPrice,
       deposits: depositActivity,
       privateKey: "Not Available",
-      publicKey: product.publicKey
+      publicKey: product.publicKey,
+      addressesList: product.addressesList
     }
   }
 
@@ -156,8 +163,10 @@ export class ProductService {
       pastEvents.map(async (product: CreatedProductDto) => {
         const existProduct = await this.getProduct(chainId, product.address);
         if (!existProduct) {
-          const wallet = this.createWallet()
-          console.log(wallet)
+          const wallet = await this.createWallet()
+          this.addProductAddressIntoStream(product.address)
+          const addressesList = await this.getAddressesContract(chainId,product.address)
+          console.log(addressesList)
           return this.create(
             chainId,
             product.address,
@@ -167,9 +176,9 @@ export class ProductService {
             product.status,
             product.currentCapacity,
             product.issuanceCycle,
-            (await wallet).privateKey,
-            (await wallet).publicKey
-
+            wallet.privateKey,
+            wallet.publicKey,
+            addressesList,
           );
         } else {
           return this.productRepository.update(
@@ -186,6 +195,50 @@ export class ProductService {
         }
       }),
     );
+  }
+
+  async getAddressesContract(chainId: number, productAddress: string): Promise<{ tokenAddress: string, ptAddress: string, marketAddress: string, currencyAddress: string }> {
+    const provider = new providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
+    const productContract = new Contract(productAddress, PRODUCT_ABI, provider);
+    console.log("Running getAddressesContract")
+    try {
+        // Fetch addresses from the contract
+        const [tokenAddress, ptAddress, marketAddress, currencyAddress] = await Promise.all([
+            productContract.tokenAddress(),
+            productContract.PT(),
+            productContract.market(),
+            productContract.currencyAddress()
+        ]);
+
+        // Return the addresses as an object
+        return {
+            tokenAddress,
+            ptAddress,
+            marketAddress,
+            currencyAddress
+        };
+    } catch (error) {
+        console.error("Error fetching addresses from contract:", error);
+        throw new Error("Failed to get addresses from contract");
+    }
+}
+
+  async addProductAddressIntoStream(productAddress: string)
+  {
+    try {      
+      // const response = await Moralis.Streams.getAddresses({
+      //   "limit": 100,
+      //   // "id": streamId
+      //   "id": "903563f7-82b9-43ef-90f7-95b8ff7866d6"
+      // });
+      const response = await Moralis.Streams.addAddress({
+        "id": "903563f7-82b9-43ef-90f7-95b8ff7866d6",
+        "address": [productAddress]
+      });
+      console.log(response.raw);
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   async syncHistories(
@@ -283,6 +336,40 @@ export class ProductService {
     }
   }
 
+  async removeTransactionOvertime(): Promise<void> {
+    const currentTime = new Date(); // Get the current time
+    const twentyFourHoursAgo = new Date(currentTime.getTime() - 60 * 1000); // Calculate the timestamp for 24 hours ago 24 * 60 * 60 * 1000
+    try {
+        const request = await this.withdrawRequestRepository.createQueryBuilder('withdraw')
+            .select('withdraw.id')
+            .where("withdraw.isTransferred = false")
+            .andWhere('withdraw.status = :status', { status: "Pending" })
+            .andWhere('withdraw.created_at < :twentyFourHoursAgo', { twentyFourHoursAgo }) // Add condition for created_at
+            .getRawMany();
+        const idList = request.map(request => request.withdraw_id)
+        if (idList.length > 0) {
+          idList.forEach((withdrawId) => {
+            this.deletelWithdraw(withdrawId)
+          });
+          console.log('removeTransactionOvertime')
+        }
+    } catch (error) {
+      console.error("Error removing overtime transactions:", error);
+    }
+}
+
+async deletelWithdraw(id: number): Promise<void> {
+  const request = await this.withdrawRequestRepository.findOne({
+    where: {
+      id: id,
+    },
+  });
+  if (request) {
+    // console.log(request)
+    await this.withdrawRequestRepository.remove(request);
+  }
+}
+
   async updateWithdrawRequest(chainId: number, product: string, address: string, txid: string , amountPtUnwindPrice: number, amountOptionUnwindPrice: number): Promise<{result:string}> {
     let result = "failed"
     try{
@@ -335,7 +422,7 @@ export class ProductService {
         },
       });
       const productId = Number(product?.id)
-      this.userRepository.saveProductId(address, productId).then(() => console.log("Product ID saved to user entity"));
+      this.userRepository.removeProductId(address, productId).then(() => console.log("Product ID deleted to user entity"));
     }
     catch(e){
         console.log(e)
@@ -401,7 +488,7 @@ export class ProductService {
 
   async getAdminWallet(chainId: number,productAddress: string) : Promise<{resultPublicKey:string}>
   {
-    let resultPublicKey = 'Not Availabe'
+    let resultPublicKey = 'Not Available'
     try
     {
       const product = await this.productRepository.findOne({
@@ -416,7 +503,6 @@ export class ProductService {
       }
     }catch (e) {
       console.error("Error fetching product:", e);
-      // Optionally, you can handle the error further or throw it
     }
     return { resultPublicKey };
   }
@@ -431,107 +517,128 @@ export class ProductService {
     return{privateKey,publicKey}
   }
 
-
-  async getHolderList(tokenAddress: string): Promise<{balanceToken: number[], ownerAddress: string[]}> {
-    const response = await Moralis.EvmApi.token.getTokenOwners({
-      "chain": "0xa4b1",
-      "order": "ASC",
-      "tokenAddress": tokenAddress
-    })
-    // const balanceToken = response?.result?.map((item: any) => item?.balance)
-    // const ownerAddress = response?.result?.map((item: any) => item?.ownerAddress)
-    const balanceToken = response.result?.map((item: any) => item?.balance) ?? [];
-    const ownerAddress = response.result?.map((item: any) => item?.ownerAddress) ?? [];
-    console.log(balanceToken)
-    console.log(ownerAddress)
-    return { balanceToken, ownerAddress }
-  }
-
-  async getPtAndOption(chainId: number,walletAddress: string, productAddress: string,noOfBlock: number): Promise<{amountToken: number, amountOption:number}>
-  {
-    console.log('Paul')
-    let amountToken = 0
-    let amountOption = 0
-    try{
-      const ethers = require('ethers');
-      const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
-      const _productContract = new ethers.Contract(productAddress, PRODUCT_ABI, provider);
-      const _tokenAddress = await _productContract.tokenAddress()
-      console.log(_tokenAddress)
-      
-      const _tokenAddressInstance = new ethers.Contract(_tokenAddress, ERC20_ABI, provider)
-      const _tokenDecimals = await _tokenAddressInstance.decimals()
-      const _tokenBalance = await _tokenAddressInstance.balanceOf(walletAddress)
-      const tokenBalance = await Number(ethers.utils.formatUnits(_tokenBalance,0))
-      
-      // PT Token
-      const _ptAddress = await _productContract.PT()
-      const _ptAddressInstance = new ethers.Contract(_ptAddress, PT_ABI, provider)
-      const _ptBalance = await _ptAddressInstance.balanceOf(productAddress)
-      const _ptTotal = await Number(ethers.utils.formatUnits(_ptBalance,0))
-
-      const _currentCapacity = await _productContract.currentCapacity()
-      const currentCapacity = await Number(ethers.utils.formatUnits(_currentCapacity,0))
-
-      const product = await this.productRepository.findOne({
-        where: {
-          address: productAddress,
-          chainId: chainId,
-          isPaused: false,
-        },
-      });
-      const issuance = product!.issuanceCycle
+  async getHolderList(productAddress: string, chainId: number): Promise<{balanceToken: number[], ownerAddress: string[]}>  {
     
-      const underlyingSpotRef = issuance.underlyingSpotRef
-      const optionMinOrderSize = (issuance.optionMinOrderSize) / 10
-      const withdrawBlockSize = underlyingSpotRef * optionMinOrderSize
-
-      const early_withdraw_balance_user = (noOfBlock * withdrawBlockSize) * 10**(_tokenDecimals)
-      const total_user_block = tokenBalance/withdrawBlockSize
-      console.log(total_user_block)
-
-      if(total_user_block>=noOfBlock)
-      {
-        const alocation  = early_withdraw_balance_user / currentCapacity
-        const _amountOutMin = Math.round(_ptTotal * alocation)
-        const _marketAddrress = await _productContract.market()
-        const _currency = await _productContract.currencyAddress()
-        console.log(_amountOutMin)
-        const url = `https://api-v2.pendle.finance/sdk/api/v1/swapExactPtForToken?chainId=${chainId}&receiverAddr=${productAddress}&marketAddr=${_marketAddrress}&amountPtIn=${_amountOutMin}&tokenOutAddr=${_currency}&slippage=0.002`;
-        console.log(url)
-        const response = await fetch(url);
-        const params = await response.json();
-        console.log(params)
-        amountToken = Number(params.data.amountTokenOut)
-
-        const issuanceCycle = await _productContract.issuanceCycle()
-        const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuanceCycle.subAccountId)
-        const responseOption = await this.getTotalOptionPosition(instrumentArray, directionArray)
-
-        console.log(responseOption)
-        console.log("alocation")
-        console.log(alocation)
-        amountOption = Math.round((alocation * responseOption.totalAmountPosition * (1 - unwindMargin)) * 10**(_tokenDecimals))
-
-        console.log("amountToken")
-        console.log(amountToken)
-        console.log(typeof amountToken)
-
-        console.log("amountOption")
-        console.log(amountOption)
-        console.log(typeof amountOption)
-
-        await this.requestWithdraw(productAddress,walletAddress,amountToken,amountOption,"Pending")
+    try {
+      const {tokenAddress} = await this.getTokenAddress(chainId, productAddress)
+      if (!tokenAddress) {
+        return { balanceToken: [], ownerAddress: [] };
       }
-    }catch(e){
-      console.log(e)
-      // amountToken = 0
-      // amountOption = 72094
-    }
+      const response = await Moralis.EvmApi.token.getTokenOwners({
+        "chain": `0x${chainId.toString(16)}`,
+        "order": "ASC",
+        "tokenAddress": tokenAddress
+      })
+      const balanceToken = response.result?.map((item: any) => item?.balance) ?? [];
+      const ownerAddress = response.result?.map((item: any) => item?.ownerAddress) ?? [];
 
-    return {amountToken,amountOption}
+      return { balanceToken, ownerAddress };
+    } catch (e) {
+      console.error("Error fetching product:", e);
+      return { balanceToken: [], ownerAddress: [] };
+    }
   }
-  
+
+  async getTokenAddress(chainId: number, productAddress: string): Promise<{ tokenAddress: string, ptAddress: string, marketAddress: string, currencyAddress: string }> {
+    try {
+        const product = await this.productRepository.findOne({
+            where: {
+                address: productAddress,
+                chainId: chainId,
+            },
+        });
+        // Check if the product exists
+        if (!product) {
+            throw new Error("Product not found");
+        }
+        const { tokenAddress, ptAddress, marketAddress, currencyAddress } = product.addressesList;
+        return {
+            tokenAddress,
+            ptAddress,
+            marketAddress,
+            currencyAddress,
+        };
+    } catch (e) {
+        console.error("Error fetching product:", e);
+        throw new Error("Failed to retrieve token addresses"); 
+    }
+}
+
+  async getPtAndOption(chainId: number, walletAddress: string, productAddress: string, noOfBlock: number): Promise<{ amountToken: number, amountOption: number }> {
+    console.log('Fetching PT and Option data...');
+    let amountToken = 0;
+    let amountOption = 0;
+    const start = new Date()
+    try {
+        const provider = new providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
+        const productContract = new Contract(productAddress, PRODUCT_ABI, provider);
+        const {tokenAddress,ptAddress,marketAddress,currencyAddress} = await this.getTokenAddress(chainId,productAddress)
+        
+        // Fetch token decimals and balance in one go
+        const tokenContract = new Contract(tokenAddress, ERC20_ABI, provider);
+        const [tokenDecimals, tokenBalance] = await Promise.all([
+            tokenContract.decimals(),
+            tokenContract.balanceOf(walletAddress)
+        ]);
+        const formattedTokenBalance = Number(utils.formatUnits(tokenBalance, tokenDecimals));
+        console.log(formattedTokenBalance)
+
+
+        // Fetch PT address and balance
+        // const ptAddress = await productContract.PT();
+        const ptContract = new Contract(ptAddress, PT_ABI, provider);
+        const ptBalance = await ptContract.balanceOf(productAddress);
+        const formattedPtBalance = Number(utils.formatUnits(ptBalance, 0));
+
+        // Fetch current capacity
+        const currentCapacity = Number(utils.formatUnits(await productContract.currentCapacity(), 0));
+
+        // Fetch product details
+        const product = await this.productRepository.findOne({
+            where: { address: productAddress, chainId: chainId, isPaused: false },
+        });
+
+        if (!product) {
+            throw new Error("Product not found");
+        }
+
+        const issuance = product.issuanceCycle;
+        console.log(issuance)
+        const underlyingSpotRef = issuance.underlyingSpotRef;
+        const optionMinOrderSize = issuance.optionMinOrderSize / 10;
+        const withdrawBlockSize = underlyingSpotRef * optionMinOrderSize;
+
+        const earlyWithdrawBalanceUser = (noOfBlock * withdrawBlockSize) * 10 ** tokenDecimals;
+        const totalUserBlock = formattedTokenBalance / withdrawBlockSize;
+
+        console.log(`Total user block: ${totalUserBlock}`);
+
+        if (totalUserBlock >= noOfBlock) {
+            const allocation = earlyWithdrawBalanceUser / currentCapacity;
+            const amountOutMin = Math.round(formattedPtBalance * allocation);
+
+            const url = `https://api-v2.pendle.finance/sdk/api/v1/swapExactPtForToken?chainId=${chainId}&receiverAddr=${productAddress}&marketAddr=${marketAddress}&amountPtIn=${amountOutMin}&tokenOutAddr=${currencyAddress}&slippage=0.002`;
+
+            const response = await fetch(url);
+            const params = await response.json();
+            amountToken = Number(params.data.amountTokenOut);
+
+            const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuance.subAccountId);
+            const responseOption = await this.getTotalOptionPosition(instrumentArray, directionArray);
+
+            amountOption = Math.round((allocation * responseOption.totalAmountPosition * (1 - unwindMargin)) * 10 ** tokenDecimals);
+            await this.requestWithdraw(productAddress, walletAddress, amountToken, amountOption, "Pending");  
+            const end = new Date()
+            const duration = end.getTime() - start.getTime(); // Calculate duration in milliseconds
+            console.log(`Execution time: ${duration} milliseconds`);  
+        }
+    } catch (error) {
+        console.error("Error in getPtAndOption:", error);
+        // Optionally, you can set default values or rethrow the error
+    }
+    return { amountToken, amountOption };
+  }
+
   async getDirectionInstrument(subAccountId: string): Promise<{instrumentArray: string[], directionArray: string[] }> {
     return new Promise((resolve, reject) => {
         const ws = new WebSocketServer('wss://test.deribit.com/ws/api/v2');
@@ -543,8 +650,10 @@ export class ProductService {
             "method": "public/auth",
             "params": {
                 "grant_type": "client_credentials",
-                "client_id": "DbdFI31E",
-                "client_secret": "O8zPh_f-S65wmT5lKhh_934nUwPmGY1TDl83AgNt58A"
+                // "client_id": "DbdFI31E",
+                // "client_secret": "O8zPh_f-S65wmT5lKhh_934nUwPmGY1TDl83AgNt58A"
+                "client_id": process.env.CLIENT_ID,
+                "client_secret": process.env.CLIENT_SECRET
             }
         };
 
@@ -654,42 +763,6 @@ async getTotalOptionPosition(instrumentArray: string[], directionArray: string[]
       };
     });
   }
-
-// async getUserOptionPosition(chainId: number,walletAddress: string, productAddress: string,
-//   noOfBlock: number,totalOptionPosition: number): Promise<{userOptionPosition: number}>
-// {
-//   let userOptionPosition = 0
-//   const ethers = require('ethers');
-//   const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
-//   const _productContract = new ethers.Contract(productAddress, PRODUCT_ABI, provider);
-//   const _tokenAddress = await _productContract.tokenAddress()
-
-//   const _tokenAddressInstance = new ethers.Contract(_tokenAddress, ERC20_ABI, provider)
-//   const _tokenDecimals = await _tokenAddressInstance.decimals()
-//   const _tokenBalance = await _tokenAddressInstance.balanceOf(walletAddress)
-//   const tokenBalance = Number(ethers.utils.formatUnits(_tokenBalance,0))/(10**_tokenDecimals)
-
-//   const _issuanceCycle = await _productContract.issuanceCycle();
-//   const underlyingSpotRef = _issuanceCycle.underlyingSpotRef.toNumber()
-//   const optionMinOrderSize = (_issuanceCycle.optionMinOrderSize.toNumber()) / 10
-//   const withdrawBlockSize = underlyingSpotRef * optionMinOrderSize
-//   const early_withdraw_balance_user = (noOfBlock * withdrawBlockSize) * 10**(_tokenDecimals)
-//   const total_user_block = tokenBalance/withdrawBlockSize
-
-//   const _totalCurrentSupply = await _productContract.totalCurrentSupply()
-//   const totalCurrentSupply = await Number(ethers.utils.formatUnits(_totalCurrentSupply,0))
-
-//   if(total_user_block>=noOfBlock)
-//   {
-//     const alocation  = early_withdraw_balance_user / totalCurrentSupply
-//     userOptionPosition = (alocation * totalOptionPosition * (1 - unwindMargin))
-//   }
-  
-//   return {userOptionPosition}
-
-// }
-
-
 
 
 }

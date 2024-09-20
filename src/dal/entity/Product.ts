@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToOne } from "typeorm";
-import { CycleDto } from "../../apis";
+import { CycleDto,AddressDto } from "../../apis";
 import { User } from "./User";
 import { History } from "./History";
 import { Property } from "@tsed/schema";
@@ -46,6 +46,10 @@ Product {
   @Column({ nullable: true })
   @Property()
   privateKey: string;
+
+  @Column({type: "json",nullable: true })
+  @Property()
+  addressesList: AddressDto;
 
   @Column("json")
   @Property()

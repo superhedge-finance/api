@@ -34,7 +34,8 @@ export class HistoryRepository extends Repository<History> {
         entity.withdrawType = withdrawType;
         entity.productId = productId;
         entity.amount = amount.toString();
-        entity.amountInDecimal = Number(ethers.utils.formatUnits(amount, DECIMAL[chainId]));
+        // entity.amountInDecimal = Number(ethers.utils.formatUnits(amount, DECIMAL[chainId]));
+        entity.amountInDecimal = Number(amount);
         if (type == HISTORY_TYPE.WITHDRAW) {
           entity.totalBalance = (totalBalance.subUnsafe(FixedNumber.from(entity.amountInDecimal))).toString();
         } else {

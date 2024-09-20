@@ -6,8 +6,8 @@ import { History, Product, ProductRepository, WithdrawRequest,WithdrawRequestRep
 // import { ProductDetailDto } from "../dto/ProductDetailDto";
 // import { CycleDto } from "../dto/CycleDto";
 // import { StatsDto } from "../dto/StatsDto";
-// import { HistoryRepository } from "../../../dal/repository/HistoryRepository";
-// import { HISTORY_TYPE, WITHDRAW_TYPE } from "../../../shared/enum";
+import { HistoryRepository } from "../../../dal/repository/HistoryRepository";
+import { HISTORY_TYPE, WITHDRAW_TYPE } from "../../../shared/enum";
 // import { DECIMAL } from "../../../shared/constants";
 // import { RPC_PROVIDERS, SUPPORT_CHAINS } from "../../../shared/constants";
 // import PRODUCT_ABI from "../../../services/abis/SHProduct.json";
@@ -22,6 +22,9 @@ export class WebhookService {
   @Inject(ProductRepository)
   private readonly productRepository: ProductRepository;
 
+  @Inject(HistoryRepository)
+  private readonly historyRepository: HistoryRepository;
+
 //   @Inject(HistoryRepository)
 //   private readonly historyRepository: HistoryRepository;
 
@@ -34,11 +37,15 @@ export class WebhookService {
   async handleWebhook(body: any) {
     let productAddress
     let userAddress
+    let amountToken
     // console.log(body)
     // console.log(body.erc20Transfers)
-
+    const chainId = parseInt(body.chainId, 16);
+    console.log(chainId)
     const trans1 = body.erc20Transfers[0]
     const trans2 = body.erc20Transfers[1]
+
+    const txHash = body.logs[0].transactionHash
 
     if(trans1.to === '0x000000000000000000000000000000000000dead')
     {
@@ -46,66 +53,95 @@ export class WebhookService {
         console.log('WithdrawPrincipal')
         productAddress = trans2.from
         userAddress = trans2.to
-        await this.removeroductIdUser(productAddress,userAddress)
+        amountToken = trans2.value
+
+        const {productSumAddress,userSumAddress} = await this.checkSumAddress(productAddress,userAddress)
+        const {productId} = await this.getProductId(productSumAddress, chainId)
+        await this.saveTransactionHistory(chainId,userSumAddress,txHash, 'WithdrawPrincipal' , productId,amountToken)
+        await this.removeroductIdUser(productId,userSumAddress)
     }
     else{
         // Deposit
         console.log('Deposit')
         productAddress = trans1.to
         userAddress = trans1.from
-        console.log(`Product Address: ${productAddress}`)
-        console.log(`User Address: ${userAddress}`)
-        await this.saveProductIdUser(productAddress,userAddress)
+        amountToken = trans1.value
+        const {productSumAddress,userSumAddress} = await this.checkSumAddress(productAddress,userAddress)
+        const {productId} = await this.getProductId(productSumAddress, chainId)
+        await this.saveTransactionHistory(chainId,userSumAddress,txHash, 'Deposit' , productId,amountToken)
+        await this.saveProductIdUser(productId,userSumAddress)
     }
   }
 
-  async saveProductIdUser(productAddress: string,address: string)
+  async checkSumAddress(productAddress: string,userAddress: string ):Promise<{productSumAddress:string, userSumAddress: string}>
   {
     const productSumAddress = ethers.utils.getAddress(productAddress)
-    const userSumAddress = ethers.utils.getAddress(address)
-    console.log("saveProductUser")
+    const userSumAddress = ethers.utils.getAddress(userAddress)
+    return {productSumAddress,userSumAddress}
+  }
+
+  async saveProductIdUser(productId:number,userAddress: string)
+  {
     try
     {
-      const product = await this.productRepository.findOne({
-        where: {
-          address: productSumAddress,
-          chainId: 42161,
-          isPaused: false,
-        },
-      });
-      const productId = Number(product?.id)
-      this.userRepository.saveProductId(userSumAddress, productId).then(() => console.log("Product ID saved to user entity"));
+      this.userRepository.saveProductId(userAddress, productId).then(() => console.log("Product ID saved to user entity"));
     }
     catch(e){
         console.log(e)
       }
   }
 
-  async removeroductIdUser(productAddress: string,address: string)
+  async removeroductIdUser(productId: number, userAddress: string)
   {
-    const productSumAddress = ethers.utils.getAddress(productAddress)
-    const userSumAddress = ethers.utils.getAddress(address)
-    console.log("saveProductUser")
     try
     {
-      const product = await this.productRepository.findOne({
-        where: {
-          address: productSumAddress,
-          chainId: 42161,
-          isPaused: false,
-        },
-      });
-      const productId = Number(product?.id)
-      this.userRepository.removeProductId(userSumAddress, productId).then(() => console.log("Product ID removed from user entity"));
+      this.userRepository.removeProductId(userAddress,productId).then(() => console.log("Product ID removed from user entity"));
     }
     catch(e){
         console.log(e)
       }
   }
 
+  async getProductId(productSumAddress: string, chainId: number):Promise<{productId: number}>
+  {
+    const product = await this.productRepository.findOne({
+      where: {
+        address: productSumAddress,
+        chainId: chainId,
+        isPaused: false,
+      },
+    });
+    const productId = Number(product?.id)
+    return {productId}
+  }
+
+  async saveTransactionHistory(chainId: number,userAddress: string,txHash: string, eventName: string , productId: number, amountToken: BigNumber)
+  {
+    let withdrawType: WITHDRAW_TYPE = WITHDRAW_TYPE.NONE;
+    let type: HISTORY_TYPE;
+    if (eventName === "WithdrawPrincipal") {
+      withdrawType = WITHDRAW_TYPE.PRINCIPAL;
+      type = HISTORY_TYPE.WITHDRAW;
+    } else {
+      type = HISTORY_TYPE.DEPOSIT;
+    }
+    console.log("amountToken")
+    console.log(amountToken)
+    console.log(typeof amountToken)
+    this.historyRepository
+                  .createHistory(
+                    chainId,
+                    userAddress,
+                    ethers.BigNumber.from(amountToken),
+                    txHash,
+                    0,
+                    type,
+                    withdrawType,
+                    productId,
+                    ethers.BigNumber.from(0),
+                    ethers.BigNumber.from(0),
+                  )
+                  .then(() => console.log("History saved"));
+  }
 
 }
-
-// console.log(body.txs)
-        // console.log(body.txs[0].hash)
-        // console.log(body.txs[0].fromAddress)
