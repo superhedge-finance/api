@@ -92,7 +92,7 @@ export class ProductService {
   getProducts(chainId: number): Promise<Array<Product>> {
     return this.productRepository.find({
       select: ["id", "name", "address","underlying","issuanceCycle", 
-              "status", "chainId","currentCapacity","maxCapacity"],
+              "status", "chainId","currentCapacity","maxCapacity","addressesList"],
       where: {
         status: Not(0),
         isPaused: false,
@@ -181,6 +181,8 @@ export class ProductService {
             addressesList,
           );
         } else {
+          const addressesList = await this.getAddressesContract(chainId,product.address)
+          console.log(addressesList)
           return this.productRepository.update(
             { address: product.address },
             {
@@ -190,6 +192,7 @@ export class ProductService {
               status: product.status,
               currentCapacity: product.currentCapacity.toString(),
               issuanceCycle: product.issuanceCycle,
+              addressesList,
             },
           );
         }
@@ -562,6 +565,19 @@ async deletelWithdraw(id: number): Promise<void> {
         console.error("Error fetching product:", e);
         throw new Error("Failed to retrieve token addresses"); 
     }
+}
+
+async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: string): Promise<{ tokenBalance: number }> {
+  const provider = new providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
+  const tokenContract = new Contract(tokenAddress, ERC20_ABI, provider);
+  
+  try {
+      const tokenBalance = await tokenContract.balanceOf(walletAddress);
+      return { tokenBalance: Number(tokenBalance) }; // Convert BigNumber to number
+  } catch (error) {
+      console.error("Error fetching token balance:", error);
+      throw new Error("Unable to fetch token balance");
+  }
 }
 
   async getPtAndOption(chainId: number, walletAddress: string, productAddress: string, noOfBlock: number): Promise<{ amountToken: number, amountOption: number }> {

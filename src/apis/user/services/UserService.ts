@@ -1,12 +1,17 @@
 import { Inject, Injectable } from "@tsed/di";
-import { In } from "typeorm";
+import { In ,Not , IsNull} from "typeorm";
 import { Product, ProductRepository, User, UserRepository, HistoryRepository } from "../../../dal";
 import { CreateUserDto } from "../dto/CreateUserDto";
 import { HistoryResponseDto } from "../dto/HistoryResponseDto";
 import { SummaryDto } from "../dto/SummaryDto";
+import {ProductService} from "../../product/services/ProductService"
 
 @Injectable()
 export class UserService {
+
+  @Inject()
+  private readonly productService: ProductService;
+
   @Inject(UserRepository)
   private readonly userRepository: UserRepository;
 
@@ -29,11 +34,95 @@ export class UserService {
     return this.userRepository.findOne({ where: { address } });
   }
 
+  async checkBalance(chainId: number, walletAddress: string, productIds: number[]): Promise<void> {
+    try {
+        const { idList, productAddress, tokenAddress } = await this.getProductAndTokenList(chainId);
+        const jsonData = idList.map((userId, index) => ({
+          id: userId,
+          productAddress: productAddress[index],
+          tokenAddress: tokenAddress[index]
+        }));
+
+        const userList = jsonData.filter(entry => productIds.includes(entry.id));
+        const withoutUserList = jsonData.filter(entry => !productIds.includes(entry.id));
+
+        // Check and Delete Product
+        for (const item of userList){
+          const { tokenBalance } = await this.productService.checkTokenBalance(chainId, item.tokenAddress, walletAddress);
+          if (tokenBalance == 0) {
+            await this.productService.removeProductUser(chainId, item.productAddress, walletAddress, "null");
+          }
+        }
+    
+        // Check and Save Product
+        for (const item of withoutUserList) {
+          const { tokenBalance } = await this.productService.checkTokenBalance(chainId, item.tokenAddress, walletAddress);
+          if (tokenBalance > 0) {
+            await this.productService.saveProductUser(chainId, item.productAddress, walletAddress, "null");
+          }
+        }
+    } catch (error) {
+        console.error("Error in checkBalance:", error);
+    }
+}
+
+  async getProductId(walletAddress: string): Promise<{ productId: number[] }> {
+    try {
+        const product = await this.userRepository.findOne({
+            where: {
+                address: walletAddress,
+            },
+        });
+        
+        const productId = product?.productIds || []; 
+        return { productId };
+    } catch (e) {
+        console.error(`getProductId error: ${e}`); 
+        return { productId: [] }; 
+    }
+}
+
+
+  async getProductAndTokenList(chainId: number): Promise<{idList: number[] ,productAddress: string[]; tokenAddress: string[] }> {
+    try {
+      const products = await this.productRepository.find({
+        select: ["id","address", "addressesList"],
+        where: {
+          status: Not(0),
+          isPaused: false,
+          chainId: chainId,
+          address: Not(IsNull()),
+          addressesList: Not(IsNull()),
+        },
+        order: {
+          created_at: "ASC",
+        },
+      });
+      
+      const idList = products.map((product) => product.id);
+      const productAddress = products.map((product) => product.address);
+      const tokenAddress = products.map((product) => product.addressesList.tokenAddress);
+  
+      return { idList,productAddress, tokenAddress };
+    } catch (e) {
+      console.log(`getProductAndTokenList ${e}`);
+      return { idList: [], productAddress: [], tokenAddress: [] };
+    }
+  }
+
   async getPositions(chainId: number, address: string): Promise<Array<Product>> {
     console.log("getPositions");
 
+    // Fetch product IDs associated with the address
+    const { productId } = await this.getProductId(address);
+    console.log("Product IDs:", productId);
+
+    // Check balance for the given address and product IDs
+    await this.checkBalance(chainId, address, productId);
+
     // Fetch the user based on the address
     const user = await this.userRepository.findOne({ where: { address } });
+    
     if (!user) {
         // If the user does not exist, create a new user entry
         await this.create({ address, username: "", email: "", subscribed: false });
@@ -42,12 +131,12 @@ export class UserService {
 
     // Fetch products while excluding sensitive fields
     const products = await this.productRepository.find({
-      select: ["id", "name", "address","underlying","issuanceCycle", "status", "chainId"],// Exclude publicKey and privateKey
-      where: {
-          id: In(user.productIds),
-          chainId: chainId,
-          isPaused: false
-      },
+        select: ["id", "name", "address", "underlying", "issuanceCycle", "status", "chainId"], // Exclude publicKey and privateKey
+        where: {
+            id: In(user.productIds),
+            chainId: chainId,
+            isPaused: false,
+        },
     });
 
     return products;
