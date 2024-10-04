@@ -11,14 +11,16 @@ import { HistoryRepository } from "../../../dal/repository/HistoryRepository";
 import { HISTORY_TYPE, WITHDRAW_TYPE } from "../../../shared/enum";
 import { DECIMAL } from "../../../shared/constants";
 import { RPC_PROVIDERS, SUPPORT_CHAINS } from "../../../shared/constants";
+// import { MoralisService } from "./MoralisService";
 import PRODUCT_ABI from "../../../services/abis/SHProduct.json";
 import ERC20_ABI from "../../../services/abis/ERC20.json";
 import PT_ABI from "../../../services/abis/PTToken.json";
 import Moralis from 'moralis';
+require('dotenv').config();
 
 const WebSocketServer = require('ws');``
 
-const unwindMargin = 0.1 //10%
+let unwindMargin = 0.1 //10%
 
 // // Import the EvmChain dataType
 // const { EvmChain } = require("@moralisweb3/common-evm-utils")
@@ -27,16 +29,22 @@ const unwindMargin = 0.1 //10%
 // const address = "0x457E474891f8e8248f906cd24c3ddC2AD7fc689a"
 // const chain = EvmChain.ETHEREUM
 
+
+//MORALIS_API_KEY_SDK
+//MORALIS_API_KEY
 Moralis.start({
-  apiKey: process.env.MORALIS_API_KEY
+  apiKey: process.env.MORALIS_API_KEY_SDK
 });
-const streamId = process.env.MORALIS_STREAM_ID
+const streamId = process.env.MORALIS_STREAM_ID as string
 // const ethers = require('ethers');
 
 @Injectable()
 export class ProductService {
 
   private readonly provider: { [chainId: number]: ethers.providers.JsonRpcProvider } = {};
+
+  // @Inject()
+  // private readonly moralisService: MoralisService;
 
   @Inject(ProductRepository)
   private readonly productRepository: ProductRepository;
@@ -163,6 +171,7 @@ export class ProductService {
       pastEvents.map(async (product: CreatedProductDto) => {
         const existProduct = await this.getProduct(chainId, product.address);
         if (!existProduct) {
+          console.log("syncProducts")
           const wallet = await this.createWallet()
           this.addProductAddressIntoStream(product.address)
           const addressesList = await this.getAddressesContract(chainId,product.address)
@@ -229,13 +238,9 @@ export class ProductService {
   async addProductAddressIntoStream(productAddress: string)
   {
     try {      
-      // const response = await Moralis.Streams.getAddresses({
-      //   "limit": 100,
-      //   // "id": streamId
-      //   "id": "903563f7-82b9-43ef-90f7-95b8ff7866d6"
-      // });
+      // MORALIS_API_KEY_SDK
       const response = await Moralis.Streams.addAddress({
-        "id": "903563f7-82b9-43ef-90f7-95b8ff7866d6",
+        "id": streamId,
         "address": [productAddress]
       });
       console.log(response.raw);
@@ -313,6 +318,21 @@ export class ProductService {
       { chainId, address: address },
       {
         isPaused: isPaused,
+      },
+    );
+  }
+
+  async updateProductStatus(chainId: number,productAddress: string, statusNumber: number): Promise<UpdateResult>
+  {
+    console.log("updateProductStatus")
+    console.log(chainId)
+    console.log(statusNumber)
+    console.log(productAddress)
+
+    return this.productRepository.update(
+      { chainId, address: productAddress },
+      {
+        status: statusNumber,
       },
     );
   }
@@ -642,7 +662,9 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
             const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuance.subAccountId);
             const responseOption = await this.getTotalOptionPosition(instrumentArray, directionArray);
 
-            amountOption = Math.round((allocation * responseOption.totalAmountPosition * (1 - unwindMargin)) * 10 ** tokenDecimals);
+            // amountOption = Math.round((allocation * responseOption.totalAmountPosition * (1 - unwindMargin)) * 10 ** tokenDecimals);
+            amountOption = Math.round((allocation * issuance.participation * responseOption.totalAmountPosition * (1 - unwindMargin)) * 10 ** tokenDecimals);
+
             await this.requestWithdraw(productAddress, walletAddress, amountToken, amountOption, "Pending");  
             const end = new Date()
             const duration = end.getTime() - start.getTime(); // Calculate duration in milliseconds
@@ -780,5 +802,33 @@ async getTotalOptionPosition(instrumentArray: string[], directionArray: string[]
     });
   }
 
+
+  async changeUnwindMargin(unwindMarginValue: number, signatureAdmin: string ): Promise<void>
+  {
+    // Create message to sign
+    const message = ethers.utils.solidityKeccak256(
+      ["uint256"],
+      [unwindMarginValue]
+    );
+    const privateKey = '0x9e04f1d559400c22bce7ce7b4a3be2bf271e2683e0c5da0362d26ddd2a3bf306';
+    // Create a wallet instance from the private key
+    const wallet = new ethers.Wallet(privateKey);
+    // Sign the message
+    const signatureSystem = await wallet.signMessage(ethers.utils.arrayify(message));
+    console.log(signatureSystem);
+    console.log(signatureAdmin)
+
+    if(signatureAdmin === signatureSystem)
+    {
+      unwindMargin = unwindMarginValue
+      console.log(unwindMargin)
+    }
+  }
+
+  async getUnwindMargin():Promise<{unwindMargin: number}>
+  {
+    const unwindMargin = 10
+    return {unwindMargin}
+  }
 
 }

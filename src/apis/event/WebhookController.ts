@@ -18,10 +18,16 @@ export class WebhookController {
     try {
         const providedSignature = res.req.headers["x-signature"]
         const generatedSignature= Web3.utils.sha3(JSON.stringify(res.req.body)+process.env.MORALIS_API_KEY)
+        
+        console.log(generatedSignature)
+        console.log(providedSignature)
         if(body.abi.length != 0)
             {
+                
                 if (body.confirmed && generatedSignature === providedSignature)
                 {
+                    console.log(body)
+                    console.log(body.txs[0])
                     await this.WebhookService.handleWebhook(body)
                 }
             }
