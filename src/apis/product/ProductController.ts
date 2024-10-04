@@ -1,5 +1,6 @@
 import { Controller, Inject } from "@tsed/di";
-import { Get, Post, Returns } from "@tsed/schema";
+import { Res } from "@tsed/common";
+import { Get, Post, Returns,Summary } from "@tsed/schema";
 import { BodyParams, PathParams, QueryParams } from "@tsed/platform-params";
 import { ContractService } from "../../services/ContractService";
 import { ProductService } from "./services/ProductService";
@@ -34,6 +35,8 @@ export class ProductController {
   @Get("/sync-products/:block")
   async syncProducts(@PathParams("block") block: number, @QueryParams("chainId") chainId: number): Promise<void> {
     const pastEvents = await this.contractService.getPastEvents(chainId, "ProductCreated", block - 10, block + 10);
+    console.log("pastEvents")
+    console.log(pastEvents)
     await this.productService.syncProducts(chainId, pastEvents);
   }
 
@@ -182,17 +185,28 @@ export class ProductController {
     return this.productService.getPtAndOption(chainId,walletAddress,productAddress,noOfBlock);
   }
 
-  // @Post("/get-pt-position")
-  // // @Returns(200,"Failed")
-  // async getAmountPtOption(
-  //   @QueryParams("chainId") chainId: number,
-  //   @QueryParams("walletAddress") walletAddress: string,
-  //   @QueryParams("productAddress") productAddress: string,
-  //   @QueryParams("noOfBlock") noOfBlock: number
-  // ): Promise<{amountToken: number, amountOption:number}>{
-  //   return this.productService.getAmountPtOption(chainId,walletAddress,productAddress,noOfBlock);
-  // }
+  @Post("/change-unwind-margin")
+  async changeUnwindMargin(
+    @QueryParams("unwindMarginValue") unwindMarginValue: number,
+    @QueryParams("signatureAdmin") signatureAdmin: string,
+  ): Promise<void>{
+    console.log("changeUnwindMargin")
+    return this.productService.changeUnwindMargin(unwindMarginValue,signatureAdmin);
+  }
 
+  @Get("/get-unwind-margin")
+  @Summary("Get the unwind margin")
+  @Returns(200)
+  async getUnwindMargin(): Promise<{unwindMargin: number}> {
+    try {
+      const result = await this.productService.getUnwindMargin();
+      console.log("Unwind margin:", result);
+      return result;
+    } catch (error) {
+      console.error("Error getting unwind margin:", error);
+      throw error;
+    }
+  }
 
 
 }

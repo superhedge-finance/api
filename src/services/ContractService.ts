@@ -8,6 +8,7 @@ import { RPC_PROVIDERS, SH_FACTORY_ADDRESS, SUPPORT_CHAINS } from "../shared/con
 @Injectable()
 export class ContractService {
   private readonly factoryContract: { [chainId: number]: Contract } = {};
+  private readonly productContract: { [chainId: number]: Contract } = {};
   private readonly marketplaceContract: { [chainId: number]: Contract } = {};
   private readonly nftContract: { [chainId: number]: Contract} = {};
   private readonly provider: { [chainId: number]: ethers.providers.JsonRpcProvider } = {};
@@ -69,7 +70,7 @@ export class ContractService {
       currentCapacity: _currentCapacity.toString(),
       paused: _paused,
       cycle: {
-        coupon: _issuanceCycle.coupon.toNumber(),
+        coupon: _issuanceCycle.coupon,
         strikePrice1: _issuanceCycle.strikePrice1.toNumber(),
         strikePrice2: _issuanceCycle.strikePrice2.toNumber(),
         strikePrice3: _issuanceCycle.strikePrice3.toNumber(),
@@ -79,9 +80,10 @@ export class ContractService {
         issuanceDate: _issuanceCycle.issuanceDate.toNumber(),
         maturityDate: _issuanceCycle.maturityDate.toNumber(),
         apy: _issuanceCycle.apy,
-        underlyingSpotRef: _issuanceCycle.underlyingSpotRef.toNumber(),
-        optionMinOrderSize: _issuanceCycle.optionMinOrderSize.toNumber(),
-        subAccountId: _issuanceCycle.subAccountId
+        underlyingSpotRef: _issuanceCycle.underlyingSpotRef,
+        optionMinOrderSize: _issuanceCycle.optionMinOrderSize,
+        subAccountId: _issuanceCycle.subAccountId,
+        participation: _issuanceCycle.participation
       },
     };
   }
@@ -96,6 +98,10 @@ export class ContractService {
     const events = await this.factoryContract[chainId].queryFilter(this.factoryContract[chainId].filters[eventName](), fromBlock, toBlock);
 
     const parsedEvents: CreatedProductDto[] = [];
+    console.log("getPastEvents")
+    console.log(events)
+    console.log("----------")
+    console.log(parsedEvents)
     for (const event of events) {
       const parsed = await this.eventToArgs(chainId, event);
       parsedEvents.push(parsed);
@@ -103,6 +109,13 @@ export class ContractService {
 
     return parsedEvents;
   }
+
+  async getPastEventsProduct(chainId: number, productAddress: string,eventName: string, fromBlock: number, toBlock: number): Promise<void> {
+    this.productContract[chainId] = new ethers.Contract(productAddress, PRODUCT_ABI, this.provider[chainId]);
+    const events = await this.productContract[chainId].queryFilter(this.productContract[chainId].filters[eventName](), fromBlock, toBlock);
+    console.log(events)
+  }
+
 
   async getMarketplacePastEvents(chainId: number, eventName: string, fromBlock: number, toBlock: number) {
     return await this.marketplaceContract[chainId].queryFilter(this.marketplaceContract[chainId].filters[eventName](), fromBlock, toBlock);
