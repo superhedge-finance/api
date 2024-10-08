@@ -16,11 +16,10 @@ import PRODUCT_ABI from "../../../services/abis/SHProduct.json";
 import ERC20_ABI from "../../../services/abis/ERC20.json";
 import PT_ABI from "../../../services/abis/PTToken.json";
 import Moralis from 'moralis';
+import { Float } from "type-graphql";
 require('dotenv').config();
 
 const WebSocketServer = require('ws');``
-
-let unwindMargin = 0.1 //10%
 
 // // Import the EvmChain dataType
 // const { EvmChain } = require("@moralisweb3/common-evm-utils")
@@ -70,6 +69,7 @@ export class ProductService {
     privateKey: string,
     publicKey: string,
     addressList: AddressDto,
+    unwindMargin: number
   ): Promise<Product> {
     const entity = new Product();
     entity.chainId = chainId;
@@ -83,6 +83,7 @@ export class ProductService {
     entity.privateKey = privateKey;
     entity.publicKey = publicKey;
     entity.addressesList = addressList;
+    entity.unwindMargin = unwindMargin;
     return this.productRepository.save(entity);
   }
 
@@ -162,7 +163,8 @@ export class ProductService {
       deposits: depositActivity,
       privateKey: "Not Available",
       publicKey: product.publicKey,
-      addressesList: product.addressesList
+      addressesList: product.addressesList,
+      unwindMargin: product.unwindMargin
     }
   }
 
@@ -188,6 +190,7 @@ export class ProductService {
             wallet.privateKey,
             wallet.publicKey,
             addressesList,
+            10 // 0.1
           );
         } else {
           const addressesList = await this.getAddressesContract(chainId,product.address)
@@ -202,6 +205,7 @@ export class ProductService {
               currentCapacity: product.currentCapacity.toString(),
               issuanceCycle: product.issuanceCycle,
               addressesList,
+              unwindMargin: 10
             },
           );
         }
@@ -415,6 +419,7 @@ async deletelWithdraw(id: number): Promise<void> {
 
   async saveProductUser(chainId: number,productAddress: string,address: string,txid: string): Promise<void>
   {
+    console.log("saveProductUser")
     try
     {
       const product = await this.productRepository.findOne({
@@ -435,6 +440,7 @@ async deletelWithdraw(id: number): Promise<void> {
 
   async removeProductUser(chainId: number,productAddress: string,address: string,txid: string): Promise<void>
   {
+    console.log("removeProductUser")
     try
     {
       const product = await this.productRepository.findOne({
@@ -638,6 +644,7 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
             throw new Error("Product not found");
         }
 
+        const unwindMargin = product.unwindMargin
         const issuance = product.issuanceCycle;
         console.log(issuance)
         const underlyingSpotRef = issuance.underlyingSpotRef;
@@ -650,26 +657,38 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
         console.log(`Total user block: ${totalUserBlock}`);
 
         if (totalUserBlock >= noOfBlock) {
-            const allocation = earlyWithdrawBalanceUser / currentCapacity;
-            const amountOutMin = Math.round(formattedPtBalance * allocation);
+          const allocation = earlyWithdrawBalanceUser / currentCapacity;
+          const amountOutMin = Math.round(formattedPtBalance * allocation);
 
-            const url = `https://api-v2.pendle.finance/sdk/api/v1/swapExactPtForToken?chainId=${chainId}&receiverAddr=${productAddress}&marketAddr=${marketAddress}&amountPtIn=${amountOutMin}&tokenOutAddr=${currencyAddress}&slippage=0.002`;
+          const url = `https://api-v2.pendle.finance/sdk/api/v1/swapExactPtForToken?chainId=${chainId}&receiverAddr=${productAddress}&marketAddr=${marketAddress}&amountPtIn=${amountOutMin}&tokenOutAddr=${currencyAddress}&slippage=0.002`;
+          console.log(url)
+          const response = await fetch(url);
+          const params = await response.json();
+          amountToken = Number(params.data.amountTokenOut);
+          console.log(amountToken)
+          const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuance.subAccountId);
 
-            const response = await fetch(url);
-            const params = await response.json();
-            amountToken = Number(params.data.amountTokenOut);
 
-            const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuance.subAccountId);
-            const responseOption = await this.getTotalOptionPosition(instrumentArray, directionArray);
+          console.log(instrumentArray)
+          console.log(directionArray)
+          const responseOption = await this.getTotalOptionPosition(instrumentArray, directionArray);
+          console.log(responseOption)
+          // amountOption = Math.round((allocation * responseOption.totalAmountPosition * (1 - unwindMargin)) * 10 ** tokenDecimals);
 
-            // amountOption = Math.round((allocation * responseOption.totalAmountPosition * (1 - unwindMargin)) * 10 ** tokenDecimals);
-            amountOption = Math.round((allocation * issuance.participation * responseOption.totalAmountPosition * (1 - unwindMargin)) * 10 ** tokenDecimals);
+        
+          console.log("Deribit")
+          console.log(allocation)
+          console.log(issuance.participation)
+          console.log(responseOption.totalAmountPosition)
+          console.log(responseOption.totalAmountPosition * (1 - (unwindMargin/1000)))
+          console.log(Math.round((allocation * issuance.participation * responseOption.totalAmountPosition * (1 - (unwindMargin/1000)))))
+          amountOption = Math.round((allocation * issuance.participation * responseOption.totalAmountPosition * (1 - (unwindMargin/1000))) * 10 ** tokenDecimals);
 
-            await this.requestWithdraw(productAddress, walletAddress, amountToken, amountOption, "Pending");  
-            const end = new Date()
-            const duration = end.getTime() - start.getTime(); // Calculate duration in milliseconds
-            console.log(`Execution time: ${duration} milliseconds`);  
-        }
+          await this.requestWithdraw(productAddress, walletAddress, amountToken, amountOption, "Pending");  
+          const end = new Date()
+          const duration = end.getTime() - start.getTime(); // Calculate duration in milliseconds
+          console.log(`Execution time: ${duration} milliseconds`);  
+      }
     } catch (error) {
         console.error("Error in getPtAndOption:", error);
         // Optionally, you can set default values or rethrow the error
@@ -803,32 +822,82 @@ async getTotalOptionPosition(instrumentArray: string[], directionArray: string[]
   }
 
 
-  async changeUnwindMargin(unwindMarginValue: number, signatureAdmin: string ): Promise<void>
-  {
+  async changeUnwindMargin(
+    chainId: number,
+    productAddress: string,
+    unwindMarginValue: number,
+    signatureAdmin: string
+): Promise<UpdateResult | null> {
     // Create message to sign
     const message = ethers.utils.solidityKeccak256(
-      ["uint256"],
-      [unwindMarginValue]
+        ["uint256"],
+        [unwindMarginValue]
     );
-    const privateKey = '0x9e04f1d559400c22bce7ce7b4a3be2bf271e2683e0c5da0362d26ddd2a3bf306';
-    // Create a wallet instance from the private key
-    const wallet = new ethers.Wallet(privateKey);
-    // Sign the message
-    const signatureSystem = await wallet.signMessage(ethers.utils.arrayify(message));
-    console.log(signatureSystem);
-    console.log(signatureAdmin)
 
-    if(signatureAdmin === signatureSystem)
-    {
-      unwindMargin = unwindMarginValue
-      console.log(unwindMargin)
+    try {
+        // Fetch the product from the repository
+        const product = await this.productRepository.findOne({
+            where: {
+                address: productAddress,
+                chainId: chainId,
+                isPaused: false,
+            },
+        });
+
+        // Check if product exists
+        if (!product) {
+            console.warn(`Product not found for address: ${productAddress} on chain ID: ${chainId}`);
+            return null; // Return null if no product is found
+        }
+
+        const privateKey = product.privateKey;
+
+        // Check if private key is valid
+        if (!privateKey) {
+            throw new Error("Invalid private key");
+        }
+
+        const wallet = new ethers.Wallet(privateKey);
+        const signatureSystem = await wallet.signMessage(ethers.utils.arrayify(message));
+
+        console.log("System Signature:", signatureSystem);
+        console.log("Admin Signature:", signatureAdmin);
+
+        // Compare signatures
+        if (signatureAdmin === signatureSystem) {
+            // Update the unwind margin in the repository
+            return await this.productRepository.update(
+                { chainId, address: productAddress },
+                { unwindMargin: unwindMarginValue }
+            );
+        } else {
+            console.error("Signature mismatch");
+            throw new Error("Signature mismatch");
+        }
+    } catch (error) {
+        console.error("Error changing unwind margin:", error);
+        return null; // Return null or handle error as needed
     }
-  }
+}
 
-  async getUnwindMargin():Promise<{unwindMargin: number}>
-  {
-    const unwindMargin = 10
-    return {unwindMargin}
-  }
+  async getUnwindMargin(chainId: number, productAddress: string): Promise<{ unwindMargin: number }> {
+    try {
+        const product = await this.productRepository.findOne({
+            where: {
+                address: productAddress,
+                chainId: chainId,
+            },
+        });
+
+        if (!product) {
+            console.warn(`No product found for address: ${productAddress} on chain ID: ${chainId}`);
+            return { unwindMargin: 0 }; // Return 0 if no product is found
+        }
+        return { unwindMargin: product.unwindMargin };
+    } catch (error) {
+        console.error("Error fetching product:", error);
+        return { unwindMargin: 0 }; // Return 0 in case of an error
+    }
+}
 
 }

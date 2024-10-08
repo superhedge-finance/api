@@ -51,6 +51,10 @@ Product {
   @Property()
   addressesList: AddressDto;
 
+  @Column({ nullable: true })
+  @Property()
+  unwindMargin: number;
+
   @Column("json")
   @Property()
   issuanceCycle: CycleDto;

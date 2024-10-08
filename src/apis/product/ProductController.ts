@@ -187,25 +187,22 @@ export class ProductController {
 
   @Post("/change-unwind-margin")
   async changeUnwindMargin(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("productAddress") productAddress: string,
     @QueryParams("unwindMarginValue") unwindMarginValue: number,
     @QueryParams("signatureAdmin") signatureAdmin: string,
   ): Promise<void>{
     console.log("changeUnwindMargin")
-    return this.productService.changeUnwindMargin(unwindMarginValue,signatureAdmin);
+    this.productService.changeUnwindMargin(chainId,productAddress,unwindMarginValue,signatureAdmin);
   }
 
-  @Get("/get-unwind-margin")
-  @Summary("Get the unwind margin")
-  @Returns(200)
-  async getUnwindMargin(): Promise<{unwindMargin: number}> {
-    try {
-      const result = await this.productService.getUnwindMargin();
-      console.log("Unwind margin:", result);
-      return result;
-    } catch (error) {
-      console.error("Error getting unwind margin:", error);
-      throw error;
-    }
+  @Post("/get-unwind-margin")
+  async getUnwindMargin(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("productAddress") productAddress: string,
+  ): Promise<{unwindMargin: number}>{
+    console.log("getUnwindMargin")
+    return this.productService.getUnwindMargin(chainId,productAddress);
   }
 
 

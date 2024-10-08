@@ -36,23 +36,25 @@ export class UserService {
 
   async checkBalance(chainId: number, walletAddress: string, productIds: number[]): Promise<void> {
     try {
-        const { idList, productAddress, tokenAddress } = await this.getProductAndTokenList(chainId);
-        const jsonData = idList.map((userId, index) => ({
-          id: userId,
-          productAddress: productAddress[index],
-          tokenAddress: tokenAddress[index]
-        }));
+      console.log("checkBalance")
+      const { idList, productAddress, tokenAddress } = await this.getProductAndTokenList(chainId);
+      const jsonData = idList.map((userId, index) => ({
+        id: userId,
+        productAddress: productAddress[index],
+        tokenAddress: tokenAddress[index]
+      }));
 
-        const userList = jsonData.filter(entry => productIds.includes(entry.id));
-        const withoutUserList = jsonData.filter(entry => !productIds.includes(entry.id));
-
-        // Check and Delete Product
-        for (const item of userList){
-          const { tokenBalance } = await this.productService.checkTokenBalance(chainId, item.tokenAddress, walletAddress);
-          if (tokenBalance == 0) {
-            await this.productService.removeProductUser(chainId, item.productAddress, walletAddress, "null");
-          }
+      const userList = jsonData.filter(entry => productIds.includes(entry.id));
+      const withoutUserList = jsonData.filter(entry => !productIds.includes(entry.id));
+      console.log(userList)
+      console.log(withoutUserList)
+      // Check and Delete Product
+      for (const item of userList){
+        const { tokenBalance } = await this.productService.checkTokenBalance(chainId, item.tokenAddress, walletAddress);
+        if (tokenBalance == 0) {
+          await this.productService.removeProductUser(chainId, item.productAddress, walletAddress, "null");
         }
+      }
     
         // Check and Save Product
         for (const item of withoutUserList) {
@@ -122,7 +124,7 @@ export class UserService {
 
     // Fetch the user based on the address
     const user = await this.userRepository.findOne({ where: { address } });
-    
+    console.log(user)
     if (!user) {
         // If the user does not exist, create a new user entry
         await this.create({ address, username: "", email: "", subscribed: false });

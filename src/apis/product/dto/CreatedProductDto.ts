@@ -37,4 +37,7 @@ export class CreatedProductDto {
   @Property()
   addressesList: AddressDto;
 
+  @Property()
+  unwindMargin: number;
+
 }

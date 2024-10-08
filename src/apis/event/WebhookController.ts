@@ -17,7 +17,7 @@ export class WebhookController {
     async handleWebhook(@BodyParams() body: any, @Res() res: Response) {
     try {
         const providedSignature = res.req.headers["x-signature"]
-        const generatedSignature= Web3.utils.sha3(JSON.stringify(res.req.body)+process.env.MORALIS_API_KEY)
+        const generatedSignature= Web3.utils.sha3(JSON.stringify(res.req.body)+process.env.MORALIS_STREAM_API_KEY)
         
         console.log(generatedSignature)
         console.log(providedSignature)
