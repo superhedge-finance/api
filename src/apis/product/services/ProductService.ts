@@ -648,7 +648,7 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
         const issuance = product.issuanceCycle;
         console.log(issuance)
         const underlyingSpotRef = issuance.underlyingSpotRef;
-        const optionMinOrderSize = issuance.optionMinOrderSize / 10;
+        const optionMinOrderSize = issuance.optionMinOrderSize / 10
         const withdrawBlockSize = underlyingSpotRef * optionMinOrderSize;
 
         const earlyWithdrawBalanceUser = (noOfBlock * withdrawBlockSize) * 10 ** tokenDecimals;
@@ -667,22 +667,14 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
           amountToken = Number(params.data.amountTokenOut);
           console.log(amountToken)
           const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuance.subAccountId);
-
-
-          console.log(instrumentArray)
-          console.log(directionArray)
           const responseOption = await this.getTotalOptionPosition(instrumentArray, directionArray);
-          console.log(responseOption)
           // amountOption = Math.round((allocation * responseOption.totalAmountPosition * (1 - unwindMargin)) * 10 ** tokenDecimals);
-
-        
-          console.log("Deribit")
-          console.log(allocation)
-          console.log(issuance.participation)
-          console.log(responseOption.totalAmountPosition)
-          console.log(responseOption.totalAmountPosition * (1 - (unwindMargin/1000)))
-          console.log(Math.round((allocation * issuance.participation * responseOption.totalAmountPosition * (1 - (unwindMargin/1000)))))
-          amountOption = Math.round((allocation * issuance.participation * responseOption.totalAmountPosition * (1 - (unwindMargin/1000))) * 10 ** tokenDecimals);
+          console.log("allocation")
+          
+          // console.log(Math.round((allocation * issuance.participation * responseOption.totalAmountPosition * (1 - (unwindMargin/1000)))))
+          // console.log(responseOption.totalAmountPosition)
+          // console.log(unwindMargin)
+          amountOption = Math.round((optionMinOrderSize * noOfBlock * issuance.participation * responseOption.totalAmountPosition * (1 - (unwindMargin/1000))) * 10 ** tokenDecimals);
 
           await this.requestWithdraw(productAddress, walletAddress, amountToken, amountOption, "Pending");  
           const end = new Date()
@@ -746,7 +738,8 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
             // Check if the response is for positions
             if (response.id === positionsMsg.id) {
                 // Handle the positions response
-                // console.log("Positions Response:", response.result);
+        
+                console.log("Positions Response:", response.result);
                 const directionArray = response.result.map((i: any) => i.direction);
                 const instrumentArray = response.result.map((i: any) => i.instrument_name);
                 // console.log("Instrument Array:", instrumentArray);
@@ -777,36 +770,48 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
 
 async getTotalOptionPosition(instrumentArray: string[], directionArray: string[]): Promise<{ totalAmountPosition: number }> {
   return new Promise((resolve, reject) => {
-      let totalAmountPosition = 0
-      const ws = new WebSocketServer('wss://test.deribit.com/ws/api/v2')
+      let totalAmountPosition = 0;
+      let responsesReceived = 0; // Counter to track how many responses we've received
+      const expectedResponses = instrumentArray.length; // Total number of expected responses
+
+      const ws = new WebSocketServer('wss://test.deribit.com/ws/api/v2');
+
       ws.onmessage = function (e: any) {
-          let instrumentUnwindPrice = 0
           const response = JSON.parse(e.data);
-          // console.log(response.result[0])
-          const index = instrumentArray.findIndex(instruments => instruments === response.result[0].instrument_name)
-          if(directionArray[index] == "buy")
-          {
-            instrumentUnwindPrice = response.result[0].bid_price * response.result[0].underlying_price
+          const index = instrumentArray.findIndex(instruments => instruments === response.result[0].instrument_name);
+
+          if (index !== -1) { // Ensure the index is valid
+              let instrumentUnwindPrice = 0;
+
+              if (directionArray[index] === "buy") {
+                  instrumentUnwindPrice = response.result[0].bid_price * response.result[0].estimated_delivery_price;
+              } else {
+                  instrumentUnwindPrice = response.result[0].ask_price * response.result[0].estimated_delivery_price * -1;
+              }
+              console.log(instrumentUnwindPrice);
+              totalAmountPosition += instrumentUnwindPrice;
           }
-          else{
-            instrumentUnwindPrice = response.result[0].ask_price * response.result[0].underlying_price
+
+          responsesReceived++; // Increment the counter for each response received
+
+          // Check if we've received all expected responses
+          if (responsesReceived === expectedResponses) {
+              resolve({ totalAmountPosition });
           }
-          totalAmountPosition+=instrumentUnwindPrice
-          resolve({totalAmountPosition});
       };
 
       ws.onopen = function () {
           // Send a message for each instrument
-          instrumentArray.forEach((instrument:string) => {
-            const msg = {
-                "jsonrpc": "2.0",
-                "id": 3659,
-                "method": "public/get_book_summary_by_instrument",
-                "params": {
-                    "instrument_name": instrument
-                }
-            };
-            ws.send(JSON.stringify(msg));
+          instrumentArray.forEach((instrument: string) => {
+              const msg = {
+                  "jsonrpc": "2.0",
+                  "id": 3659,
+                  "method": "public/get_book_summary_by_instrument",
+                  "params": {
+                      "instrument_name": instrument
+                  }
+              };
+              ws.send(JSON.stringify(msg));
           });
       };
 
@@ -818,8 +823,8 @@ async getTotalOptionPosition(instrumentArray: string[], directionArray: string[]
       ws.onclose = function () {
           console.log("WebSocket connection closed.");
       };
-    });
-  }
+  });
+}
 
 
   async changeUnwindMargin(
