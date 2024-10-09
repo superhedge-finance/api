@@ -23,13 +23,8 @@ export class EventsController {
           if(addressesList && addressesList.length >0)
           {
             // update smartcontract
-            const txResult = await this.productService.storeOptionPosition(chainId,productAddress,addressesList,amountsList)
-
-            // record status after transaction successfully
-            await this.productService.updateWithdrawRequestStatus(productAddress,addressesList)
-            // console.log(addressesList)
-            // console.log(amountsList)
-            // console.log(txResult)
+            const txResult = await this.productService.storeOptionPosition(chainId,productAddress,addressesList,amountsList) 
+            console.log(txResult)
           }
         }
       }

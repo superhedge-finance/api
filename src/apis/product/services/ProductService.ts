@@ -490,6 +490,7 @@ async deletelWithdraw(id: number): Promise<void> {
 
   async storeOptionPosition(chainId: number,productAddress: string, addressesList: string[], amountsList: number[]) : Promise<{txHash: string}>
   {
+    console.log('storeOptionPosition')
     let txHash = '0x'
     const ethers = require('ethers');
     const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
@@ -508,6 +509,8 @@ async deletelWithdraw(id: number): Promise<void> {
       const _productContract = new ethers.Contract(productAddress, PRODUCT_ABI, wallet);
       const tx = await _productContract.storageOptionPosition(addressesList,amountsList)
       txHash = tx.hash
+      
+      await this.updateWithdrawRequestStatus(productAddress,addressesList)
     }catch(e)
     {
       console.error("StoreOptionPosition", e);
@@ -676,7 +679,9 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
           // console.log(unwindMargin)
           amountOption = Math.round((optionMinOrderSize * noOfBlock * issuance.participation * responseOption.totalAmountPosition * (1 - (unwindMargin/1000))) * 10 ** tokenDecimals);
 
+          console.log(amountToken)
           await this.requestWithdraw(productAddress, walletAddress, amountToken, amountOption, "Pending");  
+
           const end = new Date()
           const duration = end.getTime() - start.getTime(); // Calculate duration in milliseconds
           console.log(`Execution time: ${duration} milliseconds`);  
