@@ -112,44 +112,12 @@ export class ProductController {
     return this.productService.getHolderList(tokenAddress,chainId);
   }
 
-  // @Post("/get-amount-out-min")
-  // // @Returns(200,"Failed")
-  // async getAmountOutMin(
-  //   @QueryParams("chainId") chainId: number,
-  //   @QueryParams("walletAddress") walletAddress: string,
-  //   @QueryParams("productAddress") productAddress: string,
-  //   @QueryParams("noOfBlock") noOfBlock: number
-  // ): Promise<{amountTokenOut: number}>{
-  //   return this.productService.getAmountOutMin(chainId,walletAddress,productAddress,noOfBlock);
-  // }
-
-  // @Post("/get-option-position")
-  // // @Returns(200,"Failed")
-  // async getTotalOptionPosition(
-  //   // @QueryParams("chainId") chainId: number,
-  //   // @QueryParams("walletAddress") walletAddress: string,
-  //   // @QueryParams("productAddress") productAddress: string,
-  //   // @QueryParams("noOfBlock") noOfBlock: number
-  // ): Promise<{amountOptionPosition: number}>{
-  //   return this.productService.getTotalOptionPosition();
-  // }
 
   @Post("/get-option-position")
   async getTotalOptionPosition(
     @BodyParams() body: { instrumentArray: string[]; directionArray: string[] }
   ): Promise<{ totalAmountPosition: number }> {
     const { instrumentArray, directionArray } = body;
-
-    // // Validate input arrays
-    // if (!Array.isArray(instrumentArray) || !Array.isArray(directionArray)) {
-    //   throw new Error("Invalid input: instruments and directions must be arrays.");
-    // }
-
-    // if (instrumentArray.length !== directionArray.length) {
-    //   throw new Error("Invalid input: instruments and directions must have the same length.");
-    // }
-
-    // Call the service method with the input arrays
     return this.productService.getTotalOptionPosition(instrumentArray, directionArray);
   }
 
@@ -203,6 +171,22 @@ export class ProductController {
   ): Promise<{unwindMargin: number}>{
     console.log("getUnwindMargin")
     return this.productService.getUnwindMargin(chainId,productAddress);
+  }
+
+
+  @Post("/get-total-option-blocks")
+  async getTotalOptionBlocks(
+    @QueryParams("productAddress") productAddress: string,
+  ): Promise<{noOfBlocks: number }> {
+    return this.productService.getTotalOptionBlocks(productAddress);
+  }
+
+  @Post("/get-user-option-blocks")
+  async getUserOptionBlocks(
+    @QueryParams("productAddress") productAddress: string,
+    @QueryParams("userAddress") userAddress: string,
+  ): Promise<{noOfBlocks: number }> {
+    return this.productService.getUserOptionBlocks(productAddress,userAddress);
   }
 
 

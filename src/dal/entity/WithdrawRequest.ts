@@ -44,4 +44,8 @@ export class WithdrawRequest {
   @UpdateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP(6)", onUpdate: "CURRENT_TIMESTAMP(6)" })
   public updated_at: Date;
 
+  @Column({ default: 0 })
+  @Property()
+  noOfBlocks: number;
+
 }

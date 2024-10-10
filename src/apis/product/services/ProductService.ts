@@ -341,14 +341,15 @@ export class ProductService {
     );
   }
 
-  async requestWithdraw(productAddress: string, address: string, amountPtUnwindPrice: number, amountOptionUnwindPrice: number,status:string ): Promise<void> {
+  async requestWithdraw(noOfBlock: number, productAddress: string, address: string, amountPtUnwindPrice: number, amountOptionUnwindPrice: number,status:string ): Promise<void> {
     const entity = new WithdrawRequest();
-    entity.product = productAddress;;
-    entity.address = address;
-    entity.amountPtUnwindPrice = amountPtUnwindPrice;
-    entity.amountOptionUnwindPrice = amountOptionUnwindPrice;
-    entity.status = status;
-    await this.withdrawRequestRepository.save(entity);
+    entity.noOfBlocks = noOfBlock
+    entity.product = productAddress
+    entity.address = address
+    entity.amountPtUnwindPrice = amountPtUnwindPrice
+    entity.amountOptionUnwindPrice = amountOptionUnwindPrice
+    entity.status = status
+    await this.withdrawRequestRepository.save(entity)
   }
 
   async cancelWithdraw(chainId: number, address: string, isTransferred: boolean): Promise<void> {
@@ -488,6 +489,39 @@ async deletelWithdraw(id: number): Promise<void> {
     return {addressesList,amountsList}
   }
 
+  async getTotalOptionBlocks(product: string): Promise<{ noOfBlocks: number }> {
+    console.log(product);
+
+    const request = await this.withdrawRequestRepository.createQueryBuilder('withdraw')
+        .select('SUM(withdraw.no_of_blocks) AS no_of_blocks')
+        .where('withdraw.product = :product', { product })
+        .andWhere('withdraw.status = :status', { status: "Success" })
+        .getRawMany();
+
+    // Extract the total number of blocks
+    const totalNoOfBlocks = request.length > 0 && request[0].no_of_blocks !== null 
+        ? Number(request[0].no_of_blocks) 
+        : 0
+    return { noOfBlocks: totalNoOfBlocks };
+  }
+
+  async getUserOptionBlocks(product: string, address: string): Promise<{ noOfBlocks: number }> {
+    console.log(product);
+    const request = await this.withdrawRequestRepository.createQueryBuilder('withdraw')
+        .select('SUM(withdraw.no_of_blocks) AS no_of_blocks')
+        .where('withdraw.product = :product', { product })
+        .andWhere('withdraw.address = :address', { address })
+        .andWhere('withdraw.status = :status', { status: "Success" })
+        .getRawMany();
+
+    // Extract the total number of blocks
+    const userNoOfBlocks = request.length > 0 && request[0].no_of_blocks !== null 
+        ? Number(request[0].no_of_blocks) 
+        : 0
+    return { noOfBlocks: userNoOfBlocks };
+  }
+
+
   async storeOptionPosition(chainId: number,productAddress: string, addressesList: string[], amountsList: number[]) : Promise<{txHash: string}>
   {
     console.log('storeOptionPosition')
@@ -509,8 +543,12 @@ async deletelWithdraw(id: number): Promise<void> {
       const _productContract = new ethers.Contract(productAddress, PRODUCT_ABI, wallet);
       const tx = await _productContract.storageOptionPosition(addressesList,amountsList)
       txHash = tx.hash
+      const receipt = await provider.getTransactionReceipt(txHash);
+      if (receipt && receipt.status === 1) {
+        console.log("Transaction was successful");
+        await this.updateWithdrawRequestStatus(productAddress,addressesList)
+      }
       
-      await this.updateWithdrawRequestStatus(productAddress,addressesList)
     }catch(e)
     {
       console.error("StoreOptionPosition", e);
@@ -680,7 +718,7 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
           amountOption = Math.round((optionMinOrderSize * noOfBlock * issuance.participation * responseOption.totalAmountPosition * (1 - (unwindMargin/1000))) * 10 ** tokenDecimals);
 
           console.log(amountToken)
-          await this.requestWithdraw(productAddress, walletAddress, amountToken, amountOption, "Pending");  
+          await this.requestWithdraw(noOfBlock,productAddress, walletAddress, amountToken, amountOption, "Pending");  
 
           const end = new Date()
           const duration = end.getTime() - start.getTime(); // Calculate duration in milliseconds
