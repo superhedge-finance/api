@@ -74,6 +74,10 @@ export class WebhookService {
     await this.removeroductIdUser(productId, sumAddress);
   }
 
+  async optionWithdrawalPaid(body: any,chainId: number ,productAddress: string){
+    await this.productService.updateOptionPaidStatus(productAddress)
+  }
+
   // Create a mapping between method IDs and functions
   methodMap: { [key: string]: (body: any, chainId: number, productAddress: string) => Promise<void> } = {
     '0xb3ea322d': (_, chainId, productAddress) => this.fundAccept(chainId, productAddress),
@@ -82,6 +86,7 @@ export class WebhookService {
     '0x87b65207': (_, chainId, productAddress) => this.Mature(chainId, productAddress),
     '0x9a408321': (body, chainId, productAddress) => this.Deposit(body, chainId, productAddress),
     '0xe1f06f54': (body, chainId, productAddress) => this.WithdrawPrincipal(body, chainId, productAddress),
+    '0xa1ea1f71': (body, chainId, productAddress) => this.optionWithdrawalPaid(body, chainId, productAddress),
   };
 
   async handleWebhook(body: any) {

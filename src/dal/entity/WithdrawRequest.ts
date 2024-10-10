@@ -48,4 +48,8 @@ export class WithdrawRequest {
   @Property()
   noOfBlocks: number;
 
+  @Column({ type: 'boolean', default: false })
+  @Property()
+  optionPaid: boolean = false;
+
 }

@@ -144,13 +144,17 @@ export class ProductService {
       }
     });
 
+    const provider = new providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
+    const productContract = new Contract(product.address, PRODUCT_ABI, provider);
+    const onchainCurrentCapacity = Number(utils.formatUnits(await productContract.currentCapacity(), 0));
+
     return {
       id: product.id,
       address: product.address,
       name: product.name,
       underlying: product.underlying,
       maxCapacity: product.maxCapacity,
-      currentCapacity: product.currentCapacity,
+      currentCapacity: String(onchainCurrentCapacity),
       status: product.status,
       issuanceCycle: product.issuanceCycle,
       chainId: product.chainId,
@@ -472,6 +476,19 @@ async deletelWithdraw(id: number): Promise<void> {
           console.log(e)
         }
     }
+  }
+
+  async updateOptionPaidStatus(product: string): Promise<void> {
+    console.log("updateOptionPaidStatus")
+    try{
+      this.withdrawRequestRepository.update(
+        { product},
+        { optionPaid : true}
+      );
+    }
+    catch(e){
+        console.log(e)
+      }
   }
 
   async getWithdrawList(product: string) : Promise<{addressesList: string[], amountsList: number[]}>{
