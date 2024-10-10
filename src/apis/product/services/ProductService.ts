@@ -529,7 +529,8 @@ async deletelWithdraw(id: number): Promise<void> {
     const ethers = require('ethers');
     const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
     try
-      {const product = await this.productRepository.findOne({
+      {
+        const product = await this.productRepository.findOne({
         where: {
           address: productAddress,
           chainId: chainId,
@@ -543,9 +544,10 @@ async deletelWithdraw(id: number): Promise<void> {
       const _productContract = new ethers.Contract(productAddress, PRODUCT_ABI, wallet);
       const tx = await _productContract.storageOptionPosition(addressesList,amountsList)
       txHash = tx.hash
-      const receipt = await provider.getTransactionReceipt(txHash);
-      if (receipt && receipt.status === 1) {
-        console.log("Transaction was successful");
+      console.log(txHash)
+      const {status} = await this.verifyTransaction(chainId, txHash)
+      if (status == 1) {
+        console.log("Transaction Admin Wallet was successful");
         await this.updateWithdrawRequestStatus(productAddress,addressesList)
       }
       
@@ -555,6 +557,31 @@ async deletelWithdraw(id: number): Promise<void> {
     }
     return {txHash}
   }
+
+  async verifyTransaction(chainId: number, txid: string): Promise<{ status: number }> {
+    const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
+    let result = 0; // Default to 0 (failure)
+    console.log("verifyTransaction");
+    // Function to create a delay
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    // Wait for 20 seconds
+    await delay(30000);
+    try {
+        const receipt = await provider.getTransactionReceipt(txid);
+        console.log(receipt);
+        if (receipt.status === 1) {
+            console.log("Transaction was successful");
+            result = 1; // Set result to 1 (success)
+        }
+    } catch (e) {
+        console.error("Error verifying transaction:", e);
+        // result remains 0 for failure
+    }
+
+    return { status: result };
+}
+
 
   async getAdminWallet(chainId: number,productAddress: string) : Promise<{resultPublicKey:string}>
   {
