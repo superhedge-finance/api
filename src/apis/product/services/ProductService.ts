@@ -209,7 +209,6 @@ export class ProductService {
               currentCapacity: product.currentCapacity.toString(),
               issuanceCycle: product.issuanceCycle,
               addressesList,
-              unwindMargin: 10
             },
           );
         }
@@ -583,12 +582,12 @@ async deletelWithdraw(id: number): Promise<void> {
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
     // Wait for 20 seconds
-    await delay(30000);
+    await delay(20000);
     try {
         const receipt = await provider.getTransactionReceipt(txid);
-        console.log(receipt);
+        // console.log(receipt);
         if (receipt.status === 1) {
-            console.log("Transaction was successful");
+            console.log("Transaction Admin Wallet was successful");
             result = 1; // Set result to 1 (success)
         }
     } catch (e) {
@@ -731,13 +730,14 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
 
         const unwindMargin = product.unwindMargin
         const issuance = product.issuanceCycle;
-        console.log(issuance)
+        // console.log(issuance)
         const underlyingSpotRef = issuance.underlyingSpotRef;
         const optionMinOrderSize = issuance.optionMinOrderSize / 10
         const withdrawBlockSize = underlyingSpotRef * optionMinOrderSize;
 
         const earlyWithdrawBalanceUser = (noOfBlock * withdrawBlockSize) * 10 ** tokenDecimals;
-        const totalUserBlock = formattedTokenBalance / withdrawBlockSize;
+
+        const totalUserBlock = Math.round(formattedTokenBalance / withdrawBlockSize)
 
         console.log(`Total user block: ${totalUserBlock}`);
 
@@ -753,12 +753,6 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
           console.log(amountToken)
           const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuance.subAccountId);
           const responseOption = await this.getTotalOptionPosition(instrumentArray, directionArray);
-          // amountOption = Math.round((allocation * responseOption.totalAmountPosition * (1 - unwindMargin)) * 10 ** tokenDecimals);
-          console.log("allocation")
-          
-          // console.log(Math.round((allocation * issuance.participation * responseOption.totalAmountPosition * (1 - (unwindMargin/1000)))))
-          // console.log(responseOption.totalAmountPosition)
-          // console.log(unwindMargin)
           amountOption = Math.round((optionMinOrderSize * noOfBlock * issuance.participation * responseOption.totalAmountPosition * (1 - (unwindMargin/1000))) * 10 ** tokenDecimals);
 
           console.log(amountToken)
