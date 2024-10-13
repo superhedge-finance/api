@@ -6,6 +6,7 @@ import { ContractService } from "../../services/ContractService";
 import { ProductService } from "./services/ProductService";
 import { CreatedProductDto } from "./dto/CreatedProductDto";
 import { ProductDetailDto } from "./dto/ProductDetailDto";
+import { AdminWalletDto } from "./dto/AdminWalletDto";
 import { Not, UpdateResult } from "typeorm";
 // import { CronService } from "../../services/CronService";
 
@@ -26,18 +27,15 @@ export class ProductController {
     return await this.productService.getProducts(chainId);
   }
 
-  @Get("/:address")
-  @Returns(200, ProductDetailDto)
-  async getProduct(@PathParams("address") address: string, @QueryParams("chainId") chainId: number): Promise<ProductDetailDto | null> {
-    return await this.productService.getProduct(chainId, address);
-  }
-
-  @Get("/sync-products/:block")
-  async syncProducts(@PathParams("block") block: number, @QueryParams("chainId") chainId: number): Promise<void> {
-    const pastEvents = await this.contractService.getPastEvents(chainId, "ProductCreated", block - 10, block + 10);
-    console.log("pastEvents")
-    console.log(pastEvents)
-    await this.productService.syncProducts(chainId, pastEvents);
+  @Get("/get-test")
+  @Returns(200, AdminWalletDto)
+  async getAdminWalletTest(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("productAddress") productAddress: string,
+  ): Promise<AdminWalletDto | null> {
+    console.log("getAdminWalletTest")
+    console.log(await this.productService.getAdminWalletTest(chainId,productAddress))
+    return await this.productService.getAdminWalletTest(chainId,productAddress);
   }
 
   @Post("/get-withdraw-list")
@@ -46,6 +44,7 @@ export class ProductController {
   ):Promise<{addressesList: string[], amountsList: number[]}>{
     return this.productService.getWithdrawList(product);
   }
+
 
   @Post("/update-withdraw-request")
   async updateWithdrawRequest(
@@ -61,8 +60,10 @@ export class ProductController {
     @QueryParams("chainId") chainId: number,
     @QueryParams("productAddress") productAddress: string,
   ): Promise<{resultPublicKey:string}> {
-    return this.productService.getAdminWallet(chainId,productAddress);
+    return await this.productService.getAdminWallet(chainId,productAddress);
   }
+
+  
 
   @Post("/update-product-user")
   async saveProductUser(
@@ -187,6 +188,23 @@ export class ProductController {
     @QueryParams("userAddress") userAddress: string,
   ): Promise<{noOfBlocks: number }> {
     return this.productService.getUserOptionBlocks(productAddress,userAddress);
+  }
+
+
+  // @PathParams should be on endline
+
+  @Get("/:address")
+  @Returns(200, ProductDetailDto)
+  async getProduct(@PathParams("address") address: string, @QueryParams("chainId") chainId: number): Promise<ProductDetailDto | null> {
+    return await this.productService.getProduct(chainId, address);
+  }
+
+  @Get("/sync-products/:block")
+  async syncProducts(@PathParams("block") block: number, @QueryParams("chainId") chainId: number): Promise<void> {
+    const pastEvents = await this.contractService.getPastEvents(chainId, "ProductCreated", block - 10, block + 10);
+    console.log("pastEvents")
+    console.log(pastEvents)
+    await this.productService.syncProducts(chainId, pastEvents);
   }
 
 

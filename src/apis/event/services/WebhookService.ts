@@ -75,6 +75,7 @@ export class WebhookService {
   }
 
   async optionWithdrawalPaid(body: any,chainId: number ,productAddress: string){
+    console.log("Executing optionWithdrawalPaid");
     await this.productService.updateOptionPaidStatus(productAddress)
   }
 
@@ -86,11 +87,13 @@ export class WebhookService {
     '0x87b65207': (_, chainId, productAddress) => this.Mature(chainId, productAddress),
     '0x9a408321': (body, chainId, productAddress) => this.Deposit(body, chainId, productAddress),
     '0xe1f06f54': (body, chainId, productAddress) => this.WithdrawPrincipal(body, chainId, productAddress),
-    '0xa1ea1f71': (body, chainId, productAddress) => this.optionWithdrawalPaid(body, chainId, productAddress),
+    '0x8fe0a864': (body, chainId, productAddress) => this.optionWithdrawalPaid(body, chainId, productAddress),
   };
 
   async handleWebhook(body: any) {
     const chainId = parseInt(body.chainId, 16);
+    console.log(body.logs[0])
+
     const productAddress = body.logs[0].address;
     console.log("Chain ID:", chainId);
 

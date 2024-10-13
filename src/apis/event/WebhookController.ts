@@ -26,8 +26,6 @@ export class WebhookController {
                 
                 if (body.confirmed && generatedSignature === providedSignature)
                 {
-                    console.log(body)
-                    console.log(body.txs[0])
                     await this.WebhookService.handleWebhook(body)
                 }
             }
@@ -45,3 +43,4 @@ export class WebhookController {
     }
 
 }
+

@@ -346,6 +346,19 @@
 	  "anonymous": false,
 	  "inputs": [
 		{
+		  "indexed": false,
+		  "internalType": "uint256",
+		  "name": "totalOptionPosition",
+		  "type": "uint256"
+		}
+	  ],
+	  "name": "UserOptionPositionPaid",
+	  "type": "event"
+	},
+	{
+	  "anonymous": false,
+	  "inputs": [
+		{
 		  "indexed": true,
 		  "internalType": "address",
 		  "name": "_user",
@@ -1061,25 +1074,6 @@
 	{
 	  "inputs": [
 		{
-		  "internalType": "address",
-		  "name": "",
-		  "type": "address"
-		}
-	  ],
-	  "name": "principalBalanceList",
-	  "outputs": [
-		{
-		  "internalType": "uint256",
-		  "name": "",
-		  "type": "uint256"
-		}
-	  ],
-	  "stateMutability": "view",
-	  "type": "function"
-	},
-	{
-	  "inputs": [
-		{
 		  "internalType": "uint256",
 		  "name": "_optionProfit",
 		  "type": "uint256"
@@ -1183,6 +1177,19 @@
 	{
 	  "inputs": [],
 	  "name": "totalBalance",
+	  "outputs": [
+		{
+		  "internalType": "uint256",
+		  "name": "",
+		  "type": "uint256"
+		}
+	  ],
+	  "stateMutability": "view",
+	  "type": "function"
+	},
+	{
+	  "inputs": [],
+	  "name": "totalNumberOfBlocks",
 	  "outputs": [
 		{
 		  "internalType": "uint256",
@@ -1389,7 +1396,7 @@
 	},
 	{
 	  "inputs": [],
-	  "name": "userOptionPosition",
+	  "name": "userOptionPositionPaid",
 	  "outputs": [],
 	  "stateMutability": "nonpayable",
 	  "type": "function"

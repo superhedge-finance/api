@@ -4,6 +4,7 @@ import { BigNumber, ethers, FixedNumber, Contract , Wallet, providers, utils} fr
 import { History, Product, ProductRepository, WithdrawRequest, WithdrawRequestRepository,UserRepository } from "../../../dal";
 import { CreatedProductDto } from "../dto/CreatedProductDto";
 import { ProductDetailDto } from "../dto/ProductDetailDto";
+import { AdminWalletDto } from "../dto/AdminWalletDto";
 import { CycleDto } from "../dto/CycleDto";
 import { StatsDto } from "../dto/StatsDto";
 import { AddressDto } from "../dto/AddressDto";
@@ -179,7 +180,7 @@ export class ProductService {
         if (!existProduct) {
           console.log("syncProducts")
           const wallet = await this.createWallet()
-          this.addProductAddressIntoStream(product.address)
+          // this.addProductAddressIntoStream(product.address)
           const addressesList = await this.getAddressesContract(chainId,product.address)
           console.log(addressesList)
           return this.create(
@@ -620,6 +621,28 @@ async deletelWithdraw(id: number): Promise<void> {
     return { resultPublicKey };
   }
 
+  async getAdminWalletTest(chainId: number,productAddress: string) : Promise<AdminWalletDto | null>
+  {
+    console.log({chainId,productAddress})
+    let resultPublicKey = 'Not Available'
+    try
+    {
+      const product = await this.productRepository.findOne({
+        where: {
+          address: productAddress,
+          chainId: chainId,
+        },
+      });
+      console.log(product)
+      if (product) {
+        resultPublicKey = product.publicKey
+      }
+    }catch (e) {
+      console.error("Error fetching product:", e);
+    }
+    return { resultPublicKey };
+  }
+
   async createWallet():Promise<{privateKey: string,publicKey: string}>
   {
     // Generate a new random wallet
@@ -750,12 +773,15 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
           const response = await fetch(url);
           const params = await response.json();
           amountToken = Number(params.data.amountTokenOut);
-          console.log(amountToken)
+          
           const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuance.subAccountId);
           const responseOption = await this.getTotalOptionPosition(instrumentArray, directionArray);
-          amountOption = Math.round((optionMinOrderSize * noOfBlock * issuance.participation * responseOption.totalAmountPosition * (1 - (unwindMargin/1000))) * 10 ** tokenDecimals);
 
-          console.log(amountToken)
+          amountOption = Math.round((optionMinOrderSize * noOfBlock * issuance.participation * responseOption.totalAmountPosition * (1 - (unwindMargin/1000))) * 10 ** tokenDecimals);
+          console.log("amountOption")
+          console.log(responseOption.totalAmountPosition)
+          // amountOption = amountOption * -1
+          console.log(amountOption)
           await this.requestWithdraw(noOfBlock,productAddress, walletAddress, amountToken, amountOption, "Pending");  
 
           const end = new Date()
