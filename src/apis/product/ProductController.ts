@@ -34,7 +34,6 @@ export class ProductController {
     @QueryParams("productAddress") productAddress: string,
   ): Promise<AdminWalletDto | null> {
     console.log("getAdminWalletTest")
-    console.log(await this.productService.getAdminWalletTest(chainId,productAddress))
     return await this.productService.getAdminWalletTest(chainId,productAddress);
   }
 
