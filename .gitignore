@@ -69,3 +69,8 @@ test/**/*.js.map
 
 /src/dal/entity/index.ts
 /src/dal/repository/index.ts
+
+
+*.crt
+*.key
+.env
