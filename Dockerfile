@@ -9,6 +9,7 @@ RUN yarn install --pure-lockfile
 
 
 COPY ./src ./src
+COPY ./ssl ./ssl
 
 RUN yarn build
 
@@ -29,6 +30,6 @@ COPY processes.config.js .
 
 EXPOSE 3000
 ENV PORT=3000
-ENV NODE_ENV=production
+ENV NODE_ENV=pro
 
 CMD ["pm2-runtime", "start", "processes.config.js", "--env", "production"]

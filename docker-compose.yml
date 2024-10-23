@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dockerapi
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - "443:3000"
+    volumes:
+      - ./ssl:/opt/ssl
+      - ./views:/opt/views
+      - ./src:/opt/src
+    networks:
+      - app-network
+    command: pm2-runtime start processes.config.js --env production
+    restart: always
+
+networks:
+  app-network:
+    driver: bridge
