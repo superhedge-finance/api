@@ -12,6 +12,7 @@ export class EventsController {
   $onInit() {
     // listen to get transaction from on chain event
     console.log(SUPPORT_CHAINS);
+    console.log("start cron job")
     cron.schedule("*/1 * * * *", async () => {
       for (const chainId of SUPPORT_CHAINS) {
         await this.productService.removeTransactionOvertime()
