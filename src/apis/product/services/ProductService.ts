@@ -676,6 +676,7 @@ async deletelWithdraw(id: number): Promise<void> {
   }
 
   async getTokenAddress(chainId: number, productAddress: string): Promise<{ tokenAddress: string, ptAddress: string, marketAddress: string, currencyAddress: string }> {
+    console.log("productAddress",productAddress)
     try {
         const product = await this.productRepository.findOne({
             where: {
