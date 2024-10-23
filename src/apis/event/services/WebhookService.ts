@@ -68,6 +68,8 @@ export class WebhookService {
     const userAddress =  body.txs[0].fromAddress;
     const amountToken =  body.erc20Transfers[1].value;
 
+    console.log(typeof amountToken);
+
     const {sumAddress} = await this.checkSumAddress(userAddress);
     const { productId } = await this.getProductId(productAddress, chainId);
     await this.saveTransactionHistory(chainId, sumAddress, txHash, 'WithdrawPrincipal', productId, amountToken);
@@ -136,12 +138,13 @@ export class WebhookService {
         isPaused: false,
       },
     });
-    
+    console.log(productSumAddress,chainId)
+    console.log(product)
     const productId = Number(product?.id);
     return { productId };
   }
 
-  async saveTransactionHistory(chainId: number,userAddress: string,txHash: string,eventName: string ,productId: number,amountToken: BigNumber) {
+  async saveTransactionHistory(chainId: number,userAddress: string,txHash: string,eventName: string ,productId: number,amountToken: string) {
     let withdrawType: WITHDRAW_TYPE = WITHDRAW_TYPE.NONE;
     let type: HISTORY_TYPE;
 
@@ -151,8 +154,6 @@ export class WebhookService {
     } else {
       type = HISTORY_TYPE.DEPOSIT;
     }
-
-    console.log("amountToken", amountToken.toString());
     
     await this.historyRepository.createHistory(
         chainId,
