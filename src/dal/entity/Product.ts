@@ -55,6 +55,10 @@ Product {
   @Property()
   unwindMargin: number;
 
+  @Column({ type: 'boolean', default: false })
+  @Property()
+  isExpired: boolean = false;
+
   @Column("json")
   @Property()
   issuanceCycle: CycleDto;

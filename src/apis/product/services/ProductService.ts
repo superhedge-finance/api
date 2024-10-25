@@ -973,10 +973,6 @@ async getTotalOptionPosition(instrumentArray: string[], directionArray: string[]
 
         const wallet = new ethers.Wallet(privateKey);
         const signatureSystem = await wallet.signMessage(ethers.utils.arrayify(message));
-
-        console.log("System Signature:", signatureSystem);
-        console.log("Admin Signature:", signatureAdmin);
-
         // Compare signatures
         if (signatureAdmin === signatureSystem) {
             // Update the unwind margin in the repository
@@ -1012,6 +1008,72 @@ async getTotalOptionPosition(instrumentArray: string[], directionArray: string[]
         console.error("Error fetching product:", error);
         return { unwindMargin: 0 }; // Return 0 in case of an error
     }
+  }
+
+  async getProductExpired(chainId: number, productAddress: string): Promise<{expiredFlag:boolean}> {
+    const product = await this.productRepository.findOne({
+      where: { address: productAddress, chainId: chainId },
+    });
+    return { expiredFlag: product?.isExpired || false };
+  }
+
+  async changeExpiredFlag(
+    chainId: number,
+    productAddress: string,
+    expiredFlag: boolean,
+    signatureAdmin: string
+): Promise<UpdateResult | null> {
+    // Create message to sign
+    const message = ethers.utils.solidityKeccak256(
+        ["bool"],
+        [expiredFlag]
+    );
+
+    try {
+        // Fetch the product from the repository
+        const product = await this.productRepository.findOne({
+            where: {
+                address: productAddress,
+                chainId: chainId,
+                isPaused: false,
+            },
+        });
+
+        // Check if product exists
+        if (!product) {
+            console.warn(`Product not found for address: ${productAddress} on chain ID: ${chainId}`);
+            return null; // Return null if no product is found
+        }
+
+        const privateKey = product.privateKey;
+
+        // Check if private key is valid
+        if (!privateKey) {
+            throw new Error("Invalid private key");
+        }
+
+        const wallet = new ethers.Wallet(privateKey);
+        const signatureSystem = await wallet.signMessage(ethers.utils.arrayify(message));
+        // Compare signatures
+        if (signatureAdmin === signatureSystem) {
+            // Update the unwind margin in the repository
+            return await this.productRepository.update(
+                { chainId, address: productAddress },
+                { isExpired: expiredFlag }
+            );
+        } else {
+            console.error("Signature mismatch");
+            throw new Error("Signature mismatch");
+        }
+    } catch (error) {
+        console.error("Error changing expired flag:", error);
+        return null; // Return null or handle error as needed
+    }
 }
 
+
+
+
+
 }
+

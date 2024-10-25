@@ -173,6 +173,24 @@ export class ProductController {
     return this.productService.getUnwindMargin(chainId,productAddress);
   }
 
+  @Post("/get-product-expired")
+  async getProductExpired(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("productAddress") productAddress: string,
+  ): Promise<{expiredFlag: boolean}>{
+    return this.productService.getProductExpired(chainId,productAddress);
+  }
+
+  @Post("/change-expired-flag")
+  async changeExpiredFlag(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("productAddress") productAddress: string,
+    @QueryParams("expiredFlag") expiredFlag: boolean,
+    @QueryParams("signatureAdmin") signatureAdmin: string,
+  ): Promise<void>{
+    this.productService.changeExpiredFlag(chainId,productAddress,expiredFlag,signatureAdmin);
+  }
+
 
   @Post("/get-total-option-blocks")
   async getTotalOptionBlocks(
@@ -205,6 +223,8 @@ export class ProductController {
     console.log(pastEvents)
     await this.productService.syncProducts(chainId, pastEvents);
   }
+
+
 
 
 }
