@@ -13,8 +13,8 @@ import {
   WithdrawRequestRepository,
   HistoryRepository,
   History,
-  // HistoryPresaleRepository,
-  // HistoryPresale
+  RefCodeRepository,
+  RefCode
 } from "./dal";
 
 registerProvider({
@@ -53,10 +53,10 @@ registerProvider({
   useValue: new HistoryRepository(History, SuperHedgeDataSource.createEntityManager()),
 });
 
-// registerProvider({
-//   provide: HistoryPresaleRepository,
-//   useValue: new HistoryPresaleRepository(HistoryPresale, SuperHedgeDataSource.createEntityManager()),
-// });
+registerProvider({
+  provide: RefCodeRepository,
+  useValue: new RefCodeRepository(RefCode, SuperHedgeDataSource.createEntityManager()),
+});
 
 async function bootstrap() {
   try {

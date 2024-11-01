@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@tsed/di";
 import { Not, UpdateResult } from "typeorm";
 import { BigNumber, ethers, FixedNumber, Contract , Wallet, providers, utils} from "ethers";
-import { History, Product, ProductRepository, WithdrawRequest, WithdrawRequestRepository,UserRepository } from "../../../dal";
+import { History, Product, ProductRepository, WithdrawRequest, WithdrawRequestRepository,UserRepository} from "../../../dal";
 import { CreatedProductDto } from "../dto/CreatedProductDto";
 import { ProductDetailDto } from "../dto/ProductDetailDto";
 import { AdminWalletDto } from "../dto/AdminWalletDto";
