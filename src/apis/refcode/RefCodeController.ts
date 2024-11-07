@@ -20,13 +20,13 @@ export class RefCodeController {
     return this.refCodeService.checkWhitelist(address);
   }
 
-  @Post("/create-ref-code")
-  async createRefCode(
-    @QueryParams("refCodeName") refCodeName: string,
-    @QueryParams("quantity") quantity: number
-  ): Promise<string> {
-    return await this.refCodeService.createRefCode(refCodeName,quantity);
-  }
+  // @Post("/create-ref-code")
+  // async createRefCode(
+  //   @QueryParams("refCodeName") refCodeName: string,
+  //   @QueryParams("quantity") quantity: number
+  // ): Promise<string> {
+  //   return await this.refCodeService.createRefCode(refCodeName,quantity);
+  // }
 
   @Post("/signUp")
   async useRefCode(
