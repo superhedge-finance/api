@@ -242,13 +242,12 @@ export class ProductController {
     return await this.productService.getTokenHolderListForProfit(chainId, productAddress);
   }
 
-  @Post("/get-token-holder-list-testP")
+  @Post("/get-token-holder-list-final")
   async getTokenHolderListTest(
     @QueryParams("chainId") chainId: number,
-    @QueryParams("productAddress") productAddress: string,
-    @QueryParams("tokenAddress") tokenAddress: string
+    @QueryParams("productAddress") productAddress: string
   ): Promise<string> {
-    return await this.productService.getHolderListTest(chainId, productAddress, tokenAddress);
+    return await this.productService.getHolderListTest(chainId, productAddress);
   }
 
 }

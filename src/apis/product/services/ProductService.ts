@@ -1110,10 +1110,11 @@ async getTokenHolderListForCoupon(chainId: number, productAddress: string): Prom
   }
 }
 
-async getHolderListTest(chainId: number, productAddress: string, tokenAddress: string): Promise<string> {
+async getHolderListTest(chainId: number, productAddress: string): Promise<string> {
   const chain = await this.convertChainId(chainId);
   let cursor = "";
-  
+  const {tokenAddress} = await this.getTokenAddress(chainId, productAddress);
+  console.log("tokenAddress");
   // Initialize arrays to store all results
   let ownerAddresses: string[] = [];
   let balanceToken: number[] = [];
