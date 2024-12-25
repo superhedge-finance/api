@@ -14,7 +14,11 @@ import {
   HistoryRepository,
   History,
   RefCodeRepository,
-  RefCode
+  RefCode,
+  CouponListRepository,
+  CouponList,
+  CouponAddressListRepository,
+  CouponAddressList,
 } from "./dal";
 
 registerProvider({
@@ -56,6 +60,16 @@ registerProvider({
 registerProvider({
   provide: RefCodeRepository,
   useValue: new RefCodeRepository(RefCode, SuperHedgeDataSource.createEntityManager()),
+});
+
+registerProvider({
+  provide: CouponListRepository,
+  useValue: new CouponListRepository(CouponList, SuperHedgeDataSource.createEntityManager()),
+});
+
+registerProvider({
+  provide: CouponAddressListRepository,
+  useValue: new CouponAddressListRepository(CouponAddressList, SuperHedgeDataSource.createEntityManager()),
 });
 
 async function bootstrap() {

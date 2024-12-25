@@ -5,7 +5,8 @@ import { CreateUserDto } from "../dto/CreateUserDto";
 import { HistoryResponseDto } from "../dto/HistoryResponseDto";
 import { SummaryDto } from "../dto/SummaryDto";
 import {ProductService} from "../../product/services/ProductService"
-
+import { TransactionHistoryDto } from "../dto/TransactionHistoryDto";
+import { GroupTransactionDto } from "../dto/GroupTransactionDto";
 @Injectable()
 export class UserService {
 
@@ -84,6 +85,39 @@ export class UserService {
     }
 }
 
+  async getProductList(walletAddress: string): Promise<Array<{ name: string; address: string }>> {
+    try {
+      const product = await this.userRepository.findOne({
+          where: {
+              address: walletAddress,
+          },
+      });
+      
+      const productId = product?.productIds || []; 
+      console.log(productId);
+
+      // Fetch product names and addresses using product IDs
+      const products = await this.productRepository.find({
+        select: ["name", "address"],
+        where: {
+          id: In(productId),
+        },
+      });
+
+      // Map products to an array of objects with name and address
+      const productList = products.map(product => ({
+        name: product.name,
+        address: product.address
+      }));
+
+      console.log(productList);
+      return productList;
+
+    } catch (e) {
+      console.error(`getProductList error: ${e}`); 
+      return []; // Return an empty array in case of an error
+    }
+  }
 
   async getProductAndTokenList(chainId: number): Promise<{idList: number[] ,productAddress: string[]; tokenAddress: string[] }> {
     try {
@@ -210,6 +244,61 @@ export class UserService {
 //         };
 //     });
 // }
+
+  async getUserTransactionHistory(chainId: number, address: string, sort: number): Promise<GroupTransactionDto[]> {
+    console.log("getHistories");
+    const histories = await this.historyRepository
+        .createQueryBuilder("history")
+        .where("history.address = :address", { address })
+        .andWhere("history.chain_id = :chainId", { chainId })
+        .andWhere("history.product_id > 0")
+        .orderBy("history.created_at", sort === 1 ? "ASC" : "DESC")
+        .getMany();
+
+    const adminHistories = await this.historyRepository
+        .createQueryBuilder("history")
+        .andWhere("history.chain_id = :chainId", { chainId })
+        .andWhere("history.address = :address", { address: "Admin" })
+        .orderBy("history.created_at", sort === 1 ? "ASC" : "DESC")
+        .getMany();
+    
+    const allHistories = [...histories, ...adminHistories];
+    allHistories.sort((a, b) => 
+        sort === 1 
+            ? a.created_at.getTime() - b.created_at.getTime() 
+            : b.created_at.getTime() - a.created_at.getTime()
+    );
+    // Group transactions by createdAt date
+    const groupedTransactions = allHistories.reduce((groups: { [key: string]: TransactionHistoryDto[] }, history) => {
+        const date = history.created_at.toISOString().split('T')[0];
+        if (!groups[date]) {
+            groups[date] = [];
+        }
+
+        groups[date].push({
+            address: history.address,
+            type: history.type,
+            withdrawType: history.withdrawType,
+            txHash: history.transactionHash,
+            amountInDecimal: history.amountInDecimal,
+            transactionHash: history.transactionHash,
+            createdAt: history.created_at,
+        });
+        return groups;
+    }, {});
+
+    // console.log('groupedTransactions');
+    // console.log(groupedTransactions);
+
+    // Convert the grouped transactions object to an array of GroupTransactionDto
+    const result: GroupTransactionDto[] = Object.entries(groupedTransactions).map(([date, transactions]) => ({
+      transactionTime: date,
+      transactionHistory: transactions,
+    }));
+
+    // console.log(result)
+    return result;
+  }
 
   async getSummaries(
     chainId: number, 

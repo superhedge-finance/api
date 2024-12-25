@@ -1,26 +1,26 @@
 import { Entity, PrimaryGeneratedColumn, Column , CreateDateColumn, UpdateDateColumn} from "typeorm";
 import { Property } from "@tsed/schema";
 
-@Entity("ref_codes")
-export class RefCode {
+@Entity("coupon_address_list")
+export class CouponAddressList {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
   @Property()
-  refCode: string;
+  couponAddressListId: string;
+
+  @Column()
+  @Property()
+  transactionHash: string;
 
   @Column("simple-array", { nullable: true })
   @Property()
   address: string[];
 
-  @Column()
+  @Column("simple-array", { nullable: true })
   @Property()
-  quantity: number;
-
-  @Column()
-  @Property()
-  usedCount: number;
+  balance: number[];
 
   @CreateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP(6)" })
   public created_at: Date;

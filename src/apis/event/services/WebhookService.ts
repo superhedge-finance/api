@@ -68,18 +68,87 @@ export class WebhookService {
     const userAddress =  body.txs[0].fromAddress;
     const amountToken =  body.erc20Transfers[1].value;
 
-    console.log(typeof amountToken);
-
     const {sumAddress} = await this.checkSumAddress(userAddress);
     const { productId } = await this.getProductId(productAddress, chainId);
     await this.saveTransactionHistory(chainId, sumAddress, txHash, 'WithdrawPrincipal', productId, amountToken);
     await this.removeroductIdUser(productId, sumAddress);
   }
 
+  //userOptionPositionPaid - [SuperHedge] Early Withdraw - Option Payout (Airdrop)
   async optionWithdrawalPaid(body: any,chainId: number ,productAddress: string){
     console.log("Executing optionWithdrawalPaid");
     await this.productService.updateOptionPaidStatus(productAddress)
+    const txHash = body.logs[0].transactionHash;
+    const amountToken = '0';
+    const {sumAddress} = await this.checkSumAddress(productAddress);
+    const { productId } = await this.getProductId(productAddress, chainId);
+    await this.saveTransactionHistory(chainId, sumAddress, txHash, '[SuperHedge] Option Payout Credit', productId, amountToken);
   }
+
+  //coupon - [SuperHedge] Coupon Credited
+  async couponCredited(body: any,chainId: number ,productAddress: string){
+    console.log("Executing couponCredited");
+    const txHash = body.logs[0].transactionHash;
+    const amountToken = '0';
+    const { productId } = await this.getProductId(productAddress, chainId);
+    await this.saveTransactionHistory(chainId, "Admin", txHash, '[SuperHedge] Option Coupon Credit', productId, amountToken);
+  }
+
+  //withdrawCoupon - [User] Coupon Withdraw
+  async withdrawCoupon(body: any,chainId: number ,productAddress: string){
+    console.log("Executing withdrawCoupon");
+    const txHash = body.logs[0].transactionHash;
+    const userAddress =  body.txs[0].fromAddress;
+    const amountToken = body.erc20Transfers[0].value;
+    const {sumAddress} = await this.checkSumAddress(userAddress);
+    const { productId } = await this.getProductId(productAddress, chainId);
+    await this.saveTransactionHistory(chainId, sumAddress, txHash, 'WithdrawCoupon', productId, amountToken);
+  }
+
+  //redeemOptionPayout() - [SuperHedge] Option Profit Credit
+  async redeemOptionPayout(body: any,chainId: number ,productAddress: string){
+    console.log("Executing redeemOptionPayout");
+    const txHash = body.logs[0].transactionHash;
+    const amountToken = '0';
+    const { productId } = await this.getProductId(productAddress, chainId);
+    await this.saveTransactionHistory(chainId, "Admin", txHash, '[SuperHedge] Option Profit Credit', productId, amountToken);
+  }
+
+  //withdrawOption - [User] Option Payout Withdraw
+  async withdrawOption(body: any,chainId: number ,productAddress: string){
+    console.log("Executing withdrawOption");
+    const txHash = body.logs[0].transactionHash;
+    const userAddress =  body.txs[0].fromAddress;
+    const amountToken = body.erc20Transfers[0].value;
+    const {sumAddress} = await this.checkSumAddress(userAddress);
+    const { productId } = await this.getProductId(productAddress, chainId);
+    await this.saveTransactionHistory(chainId, sumAddress, txHash, 'WithdrawOption', productId, amountToken);
+  }
+
+
+  //earlyWithdraw - [User] Early Withdraw 
+  async earlyWithdraw(body: any,chainId: number ,productAddress: string){
+    console.log("Executing earlyWithdraw");
+    const txHash = body.logs[0].transactionHash;
+    const userAddress =  body.txs[0].fromAddress;
+    const amountToken = body.erc20Transfers[0].value;
+    const {sumAddress} = await this.checkSumAddress(userAddress);
+    const { productId } = await this.getProductId(productAddress, chainId);
+    console.log(body.block.timestamp)
+    // await this.saveTransactionHistory(chainId, sumAddress, txHash, 'EarlyWithdraw', productId, amountToken);
+  }
+
+  //redeemYield - [SuperHedge] Principal Credit
+  async redeemYield(body: any,chainId: number ,productAddress: string){
+    console.log("Executing redeemYield");
+    const txHash = body.logs[0].transactionHash;
+    const amountToken = '0';
+    const { productId } = await this.getProductId(productAddress, chainId);
+    await this.saveTransactionHistory(chainId, "Admin", txHash, '[SuperHedge] Principal Credit', productId, amountToken);
+  }
+
+  
+
 
   // Create a mapping between method IDs and functions
   methodMap: { [key: string]: (body: any, chainId: number, productAddress: string) => Promise<void> } = {
@@ -89,6 +158,13 @@ export class WebhookService {
     '0x87b65207': (_, chainId, productAddress) => this.Mature(chainId, productAddress),
     '0x9a408321': (body, chainId, productAddress) => this.Deposit(body, chainId, productAddress),
     '0xe1f06f54': (body, chainId, productAddress) => this.WithdrawPrincipal(body, chainId, productAddress),
+    '0xf399efe8': (body, chainId, productAddress) => this.couponCredited(body, chainId, productAddress),
+    '0x6d2b8111': (body, chainId, productAddress) => this.withdrawCoupon(body, chainId, productAddress),
+    '0xf0d427c4': (body, chainId, productAddress) => this.redeemOptionPayout(body, chainId, productAddress),
+    '0xf78705c3': (body, chainId, productAddress) => this.withdrawOption(body, chainId, productAddress),
+
+    // '0xc7999408': (body, chainId, productAddress) => this.redeemYield(body, chainId, productAddress),
+    '0x6b5b9696': (body, chainId, productAddress) => this.earlyWithdraw(body, chainId, productAddress),
     '0x8fe0a864': (body, chainId, productAddress) => this.optionWithdrawalPaid(body, chainId, productAddress),
   };
 
@@ -138,21 +214,41 @@ export class WebhookService {
         isPaused: false,
       },
     });
-    console.log(productSumAddress,chainId)
-    console.log(product)
     const productId = Number(product?.id);
     return { productId };
   }
 
-  async saveTransactionHistory(chainId: number,userAddress: string,txHash: string,eventName: string ,productId: number,amountToken: string) {
+  async saveTransactionHistory(chainId: number, userAddress: string, txHash: string, eventName: string, productId: number, amountToken: string) {
     let withdrawType: WITHDRAW_TYPE = WITHDRAW_TYPE.NONE;
     let type: HISTORY_TYPE;
 
-    if (eventName === "WithdrawPrincipal") {
-      withdrawType = WITHDRAW_TYPE.PRINCIPAL;
-      type = HISTORY_TYPE.WITHDRAW;
-    } else {
-      type = HISTORY_TYPE.DEPOSIT;
+    switch (eventName) {
+        case "WithdrawPrincipal":
+            withdrawType = WITHDRAW_TYPE.PRINCIPAL;
+            type = HISTORY_TYPE.WITHDRAW;
+            break;
+        case '[SuperHedge] Option Coupon Credit':
+            type = HISTORY_TYPE.COUPON_CREDIT;
+            break;
+        case '[SuperHedge] Principal Credit':
+            type = HISTORY_TYPE.PRINCIPAL_CREDIT;
+            break;
+        case 'WithdrawCoupon':
+            type = HISTORY_TYPE.WITHDRAW;
+            withdrawType = WITHDRAW_TYPE.COUPON;
+            break;
+        case 'WithdrawOption':
+            type = HISTORY_TYPE.WITHDRAW;
+            withdrawType = WITHDRAW_TYPE.OPTION;
+            break;
+        case '[SuperHedge] Option Profit Credit':
+            type = HISTORY_TYPE.OPTION_PROFIT_CREDIT;
+            break;
+        case 'EarlyWithdraw':
+            type = HISTORY_TYPE.EARLY_WITHDRAW;
+            break;
+        default:
+            type = HISTORY_TYPE.DEPOSIT;
     }
     
     await this.historyRepository.createHistory(
@@ -166,7 +262,7 @@ export class WebhookService {
         productId,
         ethers.BigNumber.from(0),
         ethers.BigNumber.from(0),
-      );
+    );
     
     console.log("History saved");
   }

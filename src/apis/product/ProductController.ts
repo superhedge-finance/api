@@ -9,6 +9,7 @@ import { ProductDetailDto } from "./dto/ProductDetailDto";
 import { AdminWalletDto } from "./dto/AdminWalletDto";
 import { Not, UpdateResult } from "typeorm";
 // import { CronService } from "../../services/CronService";
+import { BigNumber} from "ethers";
 
 @Controller("/products")
 export class ProductController {
@@ -225,7 +226,30 @@ export class ProductController {
   }
 
 
+  @Post("/get-token-holder-list")
+  async getTokenHolderListForCoupon(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("productAddress") productAddress: string
+  ): Promise<{ ownerAddresses: string[], balanceToken: number[] }> {
+    return await this.productService.getTokenHolderListForCoupon(chainId, productAddress);
+  }
 
+  @Post("/get-token-holder-list-profit")
+  async getTokenHolderListForProfit(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("productAddress") productAddress: string
+  ): Promise<{ ownerAddresses: string[], balanceToken: number[] }> {
+    return await this.productService.getTokenHolderListForProfit(chainId, productAddress);
+  }
+
+  @Post("/get-token-holder-list-test")
+  async getTokenHolderListTest(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("productAddress") productAddress: string,
+    @QueryParams("tokenAddress") tokenAddress: string
+  ): Promise<string> {
+    return await this.productService.getHolderListTest(chainId, productAddress, tokenAddress);
+  }
 
 }
 

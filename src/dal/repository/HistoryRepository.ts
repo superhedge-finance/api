@@ -67,4 +67,5 @@ export class HistoryRepository extends Repository<History> {
       }
     }
   };
+  
 }
