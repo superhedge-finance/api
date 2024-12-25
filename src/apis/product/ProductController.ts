@@ -242,7 +242,7 @@ export class ProductController {
     return await this.productService.getTokenHolderListForProfit(chainId, productAddress);
   }
 
-  @Post("/get-token-holder-list-test")
+  @Post("/get-token-holder-list-testP")
   async getTokenHolderListTest(
     @QueryParams("chainId") chainId: number,
     @QueryParams("productAddress") productAddress: string,
