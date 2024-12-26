@@ -1137,10 +1137,10 @@ async getHolderListTest(chainId: number, productAddress: string): Promise<string
         "cursor": cursor,
         "tokenAddress": tokenAddress
       });
-
+      // get coupon from product contract 
       // Append new addresses and balances to batch arrays
       const newOwnerAddresses = response.result.map((tokenOwner: any) => tokenOwner.ownerAddress);
-      const newBalanceToken = response.result.map((tokenOwner: any) => tokenOwner.balance);
+      const newBalanceToken = response.result.map((tokenOwner: any) => tokenOwner.balance ); // 100 = 0.01
 
       batchOwnerAddresses = [...batchOwnerAddresses, ...newOwnerAddresses];
       batchBalanceToken = [...batchBalanceToken, ...newBalanceToken];
