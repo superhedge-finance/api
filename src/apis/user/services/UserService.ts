@@ -245,32 +245,93 @@ export class UserService {
 //     });
 // }
 
+  // async getUserTransactionHistory(chainId: number, address: string, sort: number): Promise<GroupTransactionDto[]> {
+  //   console.log("getHistories");
+  //   const histories = await this.historyRepository
+  //       .createQueryBuilder("history")
+  //       .where("history.address = :address", { address })
+  //       .andWhere("history.chain_id = :chainId", { chainId })
+  //       .andWhere("history.product_id > 0")
+  //       .orderBy("history.created_at", sort === 1 ? "ASC" : "DESC")
+  //       .getMany();
+
+  //   const adminHistories = await this.historyRepository
+  //       .createQueryBuilder("history")
+  //       .andWhere("history.chain_id = :chainId", { chainId })
+  //       .andWhere("history.address = :address", { address: "Admin" })
+  //       .orderBy("history.created_at", sort === 1 ? "ASC" : "DESC")
+  //       .getMany();
+    
+  //   const allHistories = [...histories, ...adminHistories];
+  //   allHistories.sort((a, b) => 
+  //       sort === 1 
+  //           ? a.created_at.getTime() - b.created_at.getTime() 
+  //           : b.created_at.getTime() - a.created_at.getTime()
+  //   );
+  //   // Group transactions by createdAt date
+  //   const groupedTransactions = allHistories.reduce((groups: { [key: string]: TransactionHistoryDto[] }, history) => {
+  //       const date = history.created_at.toISOString().split('T')[0];
+  //       if (!groups[date]) {
+  //           groups[date] = [];
+  //       }
+
+  //       groups[date].push({
+  //           address: history.address,
+  //           type: history.type,
+  //           withdrawType: history.withdrawType,
+  //           txHash: history.transactionHash,
+  //           amountInDecimal: history.amountInDecimal,
+  //           transactionHash: history.transactionHash,
+  //           createdAt: history.created_at,
+  //       });
+  //       return groups;
+  //   }, {});
+
+  //   // console.log('groupedTransactions');
+  //   // console.log(groupedTransactions);
+
+  //   // Convert the grouped transactions object to an array of GroupTransactionDto
+  //   const result: GroupTransactionDto[] = Object.entries(groupedTransactions).map(([date, transactions]) => ({
+  //     transactionTime: date,
+  //     transactionHistory: transactions,
+  //   }));
+
+  //   // console.log(result)
+  //   return result;
+  // }
+
   async getUserTransactionHistory(chainId: number, address: string, sort: number): Promise<GroupTransactionDto[]> {
     console.log("getHistories");
+    console.log(address)
     const histories = await this.historyRepository
         .createQueryBuilder("history")
         .where("history.address = :address", { address })
         .andWhere("history.chain_id = :chainId", { chainId })
         .andWhere("history.product_id > 0")
-        .orderBy("history.created_at", sort === 1 ? "ASC" : "DESC")
+        .orderBy("history.event_time", sort === 1 ? "ASC" : "DESC")
         .getMany();
 
     const adminHistories = await this.historyRepository
         .createQueryBuilder("history")
         .andWhere("history.chain_id = :chainId", { chainId })
         .andWhere("history.address = :address", { address: "Admin" })
-        .orderBy("history.created_at", sort === 1 ? "ASC" : "DESC")
+        .orderBy("history.event_time", sort === 1 ? "ASC" : "DESC")
         .getMany();
     
-    const allHistories = [...histories, ...adminHistories];
-    allHistories.sort((a, b) => 
-        sort === 1 
-            ? a.created_at.getTime() - b.created_at.getTime() 
-            : b.created_at.getTime() - a.created_at.getTime()
-    );
+
+    console.log(histories)    
+
+    const allHistories = [...histories, ...adminHistories].filter(history => history.eventTime !== null);
+    allHistories.sort((a, b) => {
+        // Safely handle potential null values
+        const timeA = a.eventTime?.getTime() || 0;
+        const timeB = b.eventTime?.getTime() || 0;
+        return sort === 1 ? timeA - timeB : timeB - timeA;
+    });
     // Group transactions by createdAt date
     const groupedTransactions = allHistories.reduce((groups: { [key: string]: TransactionHistoryDto[] }, history) => {
-        const date = history.created_at.toISOString().split('T')[0];
+        // Safely handle null eventTime
+        const date = history.eventTime?.toISOString().split('T')[0] || 'Unknown Date';
         if (!groups[date]) {
             groups[date] = [];
         }
@@ -279,10 +340,12 @@ export class UserService {
             address: history.address,
             type: history.type,
             withdrawType: history.withdrawType,
+            eventName: history.eventName,
             txHash: history.transactionHash,
             amountInDecimal: history.amountInDecimal,
             transactionHash: history.transactionHash,
             createdAt: history.created_at,
+            eventTime: history.eventTime,
         });
         return groups;
     }, {});

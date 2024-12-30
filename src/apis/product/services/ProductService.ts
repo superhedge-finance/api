@@ -373,28 +373,6 @@ export class ProductService {
     }
   }
 
-  async removeTransactionOvertime(): Promise<void> {
-    const currentTime = new Date(); // Get the current time
-    const twentyFourHoursAgo = new Date(currentTime.getTime() - 60 * 1000); // Calculate the timestamp for 24 hours ago 24 * 60 * 60 * 1000
-    try {
-        const request = await this.withdrawRequestRepository.createQueryBuilder('withdraw')
-            .select('withdraw.id')
-            .where("withdraw.isTransferred = false")
-            .andWhere('withdraw.status = :status', { status: "Pending" })
-            .andWhere('withdraw.created_at < :twentyFourHoursAgo', { twentyFourHoursAgo }) // Add condition for created_at
-            .getRawMany();
-        const idList = request.map(request => request.withdraw_id)
-        if (idList.length > 0) {
-          idList.forEach((withdrawId) => {
-            this.deletelWithdraw(withdrawId)
-          });
-          console.log('removeTransactionOvertime')
-        }
-    } catch (error) {
-      console.error("Error removing overtime transactions:", error);
-    }
-}
-
 async deletelWithdraw(id: number): Promise<void> {
   const request = await this.withdrawRequestRepository.findOne({
     where: {

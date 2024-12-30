@@ -12,6 +12,9 @@ export class TransactionHistoryDto {
   withdrawType: WITHDRAW_TYPE;
 
   @Property()
+  eventName: string;
+
+  @Property()
   txHash: string;
 
   @Property()
@@ -22,4 +25,7 @@ export class TransactionHistoryDto {
 
   @Property()
   createdAt: Date;
+
+  @Property()
+  eventTime: Date;
 }
