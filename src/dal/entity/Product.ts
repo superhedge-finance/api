@@ -97,6 +97,10 @@ Product {
   @OneToOne(() => History, (history) => history.product)
   history: History;
 
+  @Column({ nullable: true , default: "USDC" })
+  @Property()
+  currencyName: string;
+
   @CreateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP(6)" })
   public created_at: Date;
 

@@ -107,7 +107,7 @@ export class ProductService {
   getProducts(chainId: number): Promise<Array<Product>> {
     return this.productRepository.find({
       select: ["id", "name", "address","underlying","issuanceCycle", 
-              "status", "chainId","currentCapacity","maxCapacity","addressesList"],
+              "status", "chainId","currentCapacity","maxCapacity","addressesList","currencyName"],
       where: {
         status: Not(0),
         isPaused: false,
@@ -174,7 +174,8 @@ export class ProductService {
       privateKey: "Not Available",
       publicKey: product.publicKey,
       addressesList: product.addressesList,
-      unwindMargin: product.unwindMargin
+      unwindMargin: product.unwindMargin,
+      currencyName: product.currencyName
     }
   }
 
@@ -780,83 +781,115 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
     return { amountToken, amountOption };
   }
 
-  async getDirectionInstrument(subAccountId: string): Promise<{instrumentArray: string[], directionArray: string[] }> {
+  async getDirectionInstrument(subAccountId: string): Promise<{instrumentArray: string[], directionArray: string[]}> {
     return new Promise((resolve, reject) => {
-        const ws = new WebSocketServer('wss://test.deribit.com/ws/api/v2');
+        try {
+            const ws = new WebSocketServer('wss://test.deribit.com/ws/api/v2');
 
-        // Authentication message
-        const authMsg = {
-            "jsonrpc": "2.0",
-            "id": 9929,
-            "method": "public/auth",
-            "params": {
-                "grant_type": "client_credentials",
-                // "client_id": "DbdFI31E",
-                // "client_secret": "O8zPh_f-S65wmT5lKhh_934nUwPmGY1TDl83AgNt58A"
-                "client_id": process.env.CLIENT_ID,
-                "client_secret": process.env.CLIENT_SECRET
-            }
-        };
-
-        // Positions message
-        const positionsMsg = {
-            "jsonrpc": "2.0",
-            "id": 2236,
-            "method": "private/get_positions",
-            "params": {
-                "currency": "BTC",
-                "subaccount_id": subAccountId //59358
-            }
-        };
-
-        // Handle incoming messages
-        ws.onmessage = function (e: any) {
-            const response = JSON.parse(e.data);
-            // console.log('Received from server:', response);
-
-            // Check if the response is for authentication
-            if (response.id === authMsg.id) {
-                // Check if authentication was successful
-                if (response.result && response.result.access_token) {
-                    // console.log("Authentication successful, retrieving positions...");
-                    // Send the positions request
-                    ws.send(JSON.stringify(positionsMsg));
-                } else {
-                    // console.error("Authentication failed:", response);
-                    reject(new Error("Authentication failed"));
+            // Authentication message
+            const authMsg = {
+                "jsonrpc": "2.0",
+                "id": 9929,
+                "method": "public/auth",
+                "params": {
+                    "grant_type": "client_credentials",
+                    "client_id": process.env.CLIENT_ID,
+                    "client_secret": process.env.CLIENT_SECRET
                 }
-            }
+            };
 
-            // Check if the response is for positions
-            if (response.id === positionsMsg.id) {
-                // Handle the positions response
-        
-                console.log("Positions Response:", response.result);
-                const directionArray = response.result.map((i: any) => i.direction);
-                const instrumentArray = response.result.map((i: any) => i.instrument_name);
-                // console.log("Instrument Array:", instrumentArray);
+            // Positions message
+            const positionsMsg = {
+                "jsonrpc": "2.0",
+                "id": 2236,
+                "method": "private/get_positions",
+                "params": {
+                    "currency": "BTC",
+                    "subaccount_id": subAccountId
+                }
+            };
 
-                // Resolve the promise with the direction and instrument arrays
-                resolve({ instrumentArray,directionArray });
-            }
-        };
+            // Set a timeout to reject the promise if no response is received
+            const timeout = setTimeout(() => {
+                ws.close();
+                reject(new Error('WebSocket connection timeout'));
+            }, 30000); // 30 second timeout
 
-        // Handle WebSocket connection open
-        ws.onopen = function () {
-            console.log("WebSocket connection opened. Sending authentication message...");
-            ws.send(JSON.stringify(authMsg));
-        };
+            // Handle incoming messages
+            ws.onmessage = function (e: any) {
+                try {
+                    const response = JSON.parse(e.data);
+                    console.log('Received from server:', response);
 
-        // Handle WebSocket errors
-        ws.onerror = function (error: any) {
-            console.error("WebSocket error:", error);
-            reject(error); // Reject the promise on error
-        };
+                    if (response.error) {
+                        clearTimeout(timeout);
+                        ws.close();
+                        reject(new Error(`Server error: ${response.error.message}`));
+                        return;
+                    }
 
-        // Handle WebSocket connection close
-        ws.onclose = function () {
-            console.log("WebSocket connection closed.");
-        };
+                    // Check if the response is for authentication
+                    if (response.id === authMsg.id) {
+                        if (response.result && response.result.access_token) {
+                            console.log("Authentication successful, retrieving positions...");
+                            ws.send(JSON.stringify(positionsMsg));
+                        } else {
+                            clearTimeout(timeout);
+                            ws.close();
+                            reject(new Error("Authentication failed"));
+                        }
+                    }
+
+                    // Check if the response is for positions
+                    if (response.id === positionsMsg.id) {
+                        clearTimeout(timeout);
+                        ws.close();
+
+                        if (!response.result || !Array.isArray(response.result)) {
+                            reject(new Error("Invalid positions response format"));
+                            return;
+                        }
+
+                        const directionArray = response.result.map((i: any) => i.direction);
+                        const instrumentArray = response.result.map((i: any) => i.instrument_name);
+                        
+                        resolve({ instrumentArray, directionArray });
+                    }
+                } catch (error) {
+                    clearTimeout(timeout);
+                    ws.close();
+                    reject(new Error(`Error processing message: ${error.message}`));
+                }
+            };
+
+            // Handle WebSocket connection open
+            ws.onopen = function () {
+                console.log("WebSocket connection opened. Sending authentication message...");
+                try {
+                    ws.send(JSON.stringify(authMsg));
+                } catch (error) {
+                    clearTimeout(timeout);
+                    ws.close();
+                    reject(new Error(`Failed to send auth message: ${error.message}`));
+                }
+            };
+
+            // Handle WebSocket errors
+            ws.onerror = function (error: any) {
+                clearTimeout(timeout);
+                console.error("WebSocket error:", error);
+                reject(new Error(`WebSocket error: ${error.message}`));
+            };
+
+            // Handle WebSocket connection close
+            ws.onclose = function () {
+                clearTimeout(timeout);
+                console.log("WebSocket connection closed.");
+            };
+
+        } catch (error) {
+            reject(new Error(`Failed to initialize WebSocket: ${error.message}`));
+        }
     });
 }
 

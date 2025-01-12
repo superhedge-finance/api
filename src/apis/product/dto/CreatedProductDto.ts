@@ -40,4 +40,7 @@ export class CreatedProductDto {
   @Property()
   unwindMargin: number;
 
+  @Property()
+  currencyName: string;
+
 }
