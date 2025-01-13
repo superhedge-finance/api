@@ -101,6 +101,10 @@ Product {
   @Property()
   currencyName: string;
 
+  @Column({ nullable: true , default: "ETH" })
+  @Property()
+  underlyingName: string;
+
   @CreateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP(6)" })
   public created_at: Date;
 

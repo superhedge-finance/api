@@ -43,4 +43,6 @@ export class CreatedProductDto {
   @Property()
   currencyName: string;
 
+  @Property()
+  underlyingName: string;
 }
