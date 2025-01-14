@@ -107,7 +107,7 @@ export class ProductService {
   getProducts(chainId: number): Promise<Array<Product>> {
     return this.productRepository.find({
       select: ["id", "name", "address","underlying","issuanceCycle", 
-              "status", "chainId","currentCapacity","maxCapacity","addressesList","currencyName","underlyingName"],
+              "status", "chainId","currentCapacity","maxCapacity","addressesList","currencyName","underlyingName","couponTooltip"],
       where: {
         status: Not(0),
         isPaused: false,
@@ -176,7 +176,8 @@ export class ProductService {
       addressesList: product.addressesList,
       unwindMargin: product.unwindMargin,
       currencyName: product.currencyName,
-      underlyingName: product.underlyingName
+      underlyingName: product.underlyingName,
+      couponTooltip: product.couponTooltip
     }
   }
 

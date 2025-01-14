@@ -105,6 +105,10 @@ Product {
   @Property()
   underlyingName: string;
 
+  @Column({ nullable: true , default: "coupon" })
+  @Property()
+  couponTooltip: string;
+
   @CreateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP(6)" })
   public created_at: Date;
 

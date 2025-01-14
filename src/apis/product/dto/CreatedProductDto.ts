@@ -45,4 +45,7 @@ export class CreatedProductDto {
 
   @Property()
   underlyingName: string;
+
+  @Property()
+  couponTooltip: string;
 }
