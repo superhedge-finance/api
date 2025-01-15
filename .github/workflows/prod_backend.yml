@@ -1,0 +1,41 @@
+name: Backend - Build and Deploy - Production
+
+on:
+  push:
+    branches:
+      - staging
+
+permissions:
+  id-token: write
+  contents: read
+  actions: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PROD_DEPLOY_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.PROD_DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: SSH into server and pull code
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PROD_DEPLOY_HOST }}
+          username: ${{ secrets.PROD_DEPLOY_USER }}
+          key: ${{ secrets.PROD_DEPLOY_SSH_KEY }}
+          port: ${{ secrets.PROD_DEPLOY_PORT }}
+          script: |
+            cd ${{ secrets.PROD_DEPLOY_TARGET }}
+            git pull
+            docker compose up --build -d
+            docker compose ps -a
+            echo "GITHUB_RUN_ID=${{ github.run_id }}" > .backend.github.env 
