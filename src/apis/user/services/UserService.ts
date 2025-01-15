@@ -80,7 +80,7 @@ export class UserService {
         const productId = product?.productIds || []; 
         return { productId };
     } catch (e) {
-        console.error(`getProductId errors: ${e}`); 
+        console.error(`getProductId error: ${e}`); 
         return { productId: [] }; 
     }
 }
