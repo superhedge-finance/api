@@ -220,7 +220,7 @@ export class ProductController {
   @Get("/sync-products/:block")
   async syncProducts(@PathParams("block") block: number, @QueryParams("chainId") chainId: number): Promise<void> {
     const pastEvents = await this.contractService.getPastEvents(chainId, "ProductCreated", block - 10, block + 10);
-    console.log("check pastEvents")
+    console.log("pastEvents")
     console.log(pastEvents)
     await this.productService.syncProducts(chainId, pastEvents);
   }
