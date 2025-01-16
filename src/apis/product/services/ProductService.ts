@@ -389,7 +389,7 @@ async deletelWithdraw(id: number): Promise<void> {
 }
 
   async updateWithdrawRequest(chainId: number, product: string, address: string, txid: string , amountPtUnwindPrice: number, amountOptionUnwindPrice: number): Promise<{result:string}> {
-    console.log("updateWithdrawRequest")
+    console.log("updateWithdrawRequests")
     let result = "failed"
     try{
       const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId])
