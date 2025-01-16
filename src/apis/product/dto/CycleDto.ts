@@ -39,5 +39,8 @@ export class CycleDto {
 
   @Property()
   subAccountId: string;
+
+  @Property()
+  participation: number;
   
 }

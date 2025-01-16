@@ -10,6 +10,8 @@ import "./resolvers/index";
 import { config } from "./config";
 import * as pages from "./pages";
 import * as apis from "./apis";
+import * as fs from 'fs';
+import * as path from "path";
 
 // Import the Webhook Controller
 import { WebhookController } from "./apis/event/WebhookController";
@@ -18,8 +20,15 @@ import { WebhookController } from "./apis/event/WebhookController";
   ...config,
   acceptMimes: ["application/json", "image/png", "text/csv"],
   // httpPort: process.env.PORT || 3000,
-  httpPort: "0.0.0.0:3000",
-  httpsPort: false, // CHANGE
+  // httpPort: "0.0.0.0:3000",
+  //httpsPort: false, // CHANGE
+  
+  httpsPort: 3000, // 
+  httpPort: false,   // 
+  httpsOptions: {
+    key: fs.readFileSync(path.resolve(__dirname, '../ssl/private.key')),
+    cert: fs.readFileSync(path.resolve(__dirname, '../ssl/certificate.crt'))
+  },
   componentsScan: false,
   mount: {
     "/": [...Object.values(pages)],
@@ -60,4 +69,3 @@ export class Server {
     // Any additional initialization logic can go here
   }
 }
-

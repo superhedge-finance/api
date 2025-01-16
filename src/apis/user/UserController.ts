@@ -7,6 +7,8 @@ import { CreatedUserDto } from "./dto/CreatedUserDto";
 import { Product, User } from "../../dal";
 import { HistoryResponseDto } from "./dto/HistoryResponseDto";
 import { SummaryDto } from "./dto/SummaryDto";
+import { TransactionHistoryDto } from "./dto/TransactionHistoryDto";
+import { GroupTransactionDto } from "./dto/GroupTransactionDto";
 
 @Controller("/users")
 export class UserController {
@@ -49,6 +51,26 @@ export class UserController {
     @QueryParams("sort") sort: number,
     @QueryParams("chainId") chainId: number,
   ): Promise<Array<HistoryResponseDto>> {
+    // console.log(this.userService.getHistories(chainId, address, sort))
     return this.userService.getHistories(chainId, address, sort);
   }
+
+  @Post("/productlist/address")
+  async getProductList(
+    @QueryParams("address") address: string
+  ): Promise<Array<{ name: string; address: string }>> {
+    return await this.userService.getProductList(address);
+  }
+
+  @Get("/transaction-history/:address")
+  @Returns(200, Array)
+  async getTransactionHistory(
+    @PathParams("address") address: string,
+    @QueryParams("chainId") chainId: number,
+  ): Promise<GroupTransactionDto[] > {
+    const result = await this.userService.getUserTransactionHistory(chainId, address,0);
+    return result;
+  }
+
+
 }

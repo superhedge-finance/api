@@ -13,6 +13,12 @@ import {
   WithdrawRequestRepository,
   HistoryRepository,
   History,
+  RefCodeRepository,
+  RefCode,
+  CouponListRepository,
+  CouponList,
+  CouponAddressListRepository,
+  CouponAddressList,
 } from "./dal";
 
 registerProvider({
@@ -51,10 +57,20 @@ registerProvider({
   useValue: new HistoryRepository(History, SuperHedgeDataSource.createEntityManager()),
 });
 
-// registerProvider({
-//   provide: MarketplaceRepository,
-//   useValue: new MarketplaceRepository(Marketplace, SuperHedgeDataSource.createEntityManager()),
-// });
+registerProvider({
+  provide: RefCodeRepository,
+  useValue: new RefCodeRepository(RefCode, SuperHedgeDataSource.createEntityManager()),
+});
+
+registerProvider({
+  provide: CouponListRepository,
+  useValue: new CouponListRepository(CouponList, SuperHedgeDataSource.createEntityManager()),
+});
+
+registerProvider({
+  provide: CouponAddressListRepository,
+  useValue: new CouponAddressListRepository(CouponAddressList, SuperHedgeDataSource.createEntityManager()),
+});
 
 async function bootstrap() {
   try {

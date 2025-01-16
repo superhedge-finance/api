@@ -1,26 +1,28 @@
 import { Inject, Injectable } from "@tsed/di";
 import { Not, UpdateResult } from "typeorm";
-import { BigNumber, ethers, FixedNumber, Contract , Wallet} from "ethers";
-import { History, Product, ProductRepository, WithdrawRequest, WithdrawRequestRepository,UserRepository } from "../../../dal";
+import { BigNumber, ethers, FixedNumber, Contract , Wallet, providers, utils} from "ethers";
+import { History, Product, ProductRepository, WithdrawRequest, WithdrawRequestRepository,UserRepository} from "../../../dal";
 import { CreatedProductDto } from "../dto/CreatedProductDto";
 import { ProductDetailDto } from "../dto/ProductDetailDto";
+import { AdminWalletDto } from "../dto/AdminWalletDto";
 import { CycleDto } from "../dto/CycleDto";
 import { StatsDto } from "../dto/StatsDto";
+import { AddressDto } from "../dto/AddressDto";
 import { HistoryRepository } from "../../../dal/repository/HistoryRepository";
 import { HISTORY_TYPE, WITHDRAW_TYPE } from "../../../shared/enum";
 import { DECIMAL } from "../../../shared/constants";
 import { RPC_PROVIDERS, SUPPORT_CHAINS } from "../../../shared/constants";
+// import { MoralisService } from "./MoralisService";
 import PRODUCT_ABI from "../../../services/abis/SHProduct.json";
 import ERC20_ABI from "../../../services/abis/ERC20.json";
 import PT_ABI from "../../../services/abis/PTToken.json";
-
-const express = require("express")
-// Import Moralis
-const Moralis = require("moralis").default
+import STORE_COUPON_ABI from "../../../services/abis/StoreCoupon.json";
+import Moralis from 'moralis';
+import { Float } from "type-graphql";
+import { CouponService } from "../../coupon/services/CouponService";
+require('dotenv').config();
 
 const WebSocketServer = require('ws');``
-
-const unwindMargin = 0.1 //10%
 
 // // Import the EvmChain dataType
 // const { EvmChain } = require("@moralisweb3/common-evm-utils")
@@ -29,14 +31,22 @@ const unwindMargin = 0.1 //10%
 // const address = "0x457E474891f8e8248f906cd24c3ddC2AD7fc689a"
 // const chain = EvmChain.ETHEREUM
 
-// Moralis.start({
-//   apiKey: MORALIS_API_KEY,
-// })
+
+//MORALIS_API_KEY_SDK
+//MORALIS_API_KEY
+Moralis.start({
+  apiKey: process.env.MORALIS_API_KEY_SDK
+});
+const streamId = process.env.MORALIS_STREAM_ID as string
+// const ethers = require('ethers');
 
 @Injectable()
 export class ProductService {
 
   private readonly provider: { [chainId: number]: ethers.providers.JsonRpcProvider } = {};
+
+  // @Inject()
+  // private readonly moralisService: MoralisService;
 
   @Inject(ProductRepository)
   private readonly productRepository: ProductRepository;
@@ -50,6 +60,9 @@ export class ProductService {
   @Inject(UserRepository)
   private readonly userRepository: UserRepository;
 
+  @Inject(CouponService)
+  private readonly couponService: CouponService;
+
   create(
     chainId: number,
     address: string,
@@ -60,7 +73,9 @@ export class ProductService {
     currentCapacity: string,
     cycle: CycleDto,
     privateKey: string,
-    publicKey: string
+    publicKey: string,
+    addressList: AddressDto,
+    unwindMargin: number
   ): Promise<Product> {
     const entity = new Product();
     entity.chainId = chainId;
@@ -73,11 +88,15 @@ export class ProductService {
     entity.issuanceCycle = cycle;
     entity.privateKey = privateKey;
     entity.publicKey = publicKey;
+    entity.addressesList = addressList;
+    entity.unwindMargin = unwindMargin;
     return this.productRepository.save(entity);
   }
 
   getProductsWithoutStatus(chainId: number): Promise<Array<Product>> {
     return this.productRepository.find({
+      select: ["id", "name", "address","underlying","issuanceCycle", 
+        "status", "chainId","currentCapacity","maxCapacity"],
       where: {
         chainId: chainId,
         isPaused: false,
@@ -87,6 +106,8 @@ export class ProductService {
 
   getProducts(chainId: number): Promise<Array<Product>> {
     return this.productRepository.find({
+      select: ["id", "name", "address","underlying","issuanceCycle", 
+              "status", "chainId","currentCapacity","maxCapacity","addressesList","currencyName","underlyingName","couponTooltip"],
       where: {
         status: Not(0),
         isPaused: false,
@@ -129,13 +150,17 @@ export class ProductService {
       }
     });
 
+    const provider = new providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
+    const productContract = new Contract(product.address, PRODUCT_ABI, provider);
+    const onchainCurrentCapacity = Number(utils.formatUnits(await productContract.currentCapacity(), 0));
+
     return {
       id: product.id,
       address: product.address,
       name: product.name,
       underlying: product.underlying,
       maxCapacity: product.maxCapacity,
-      currentCapacity: product.currentCapacity,
+      currentCapacity: String(onchainCurrentCapacity),
       status: product.status,
       issuanceCycle: product.issuanceCycle,
       chainId: product.chainId,
@@ -147,7 +172,12 @@ export class ProductService {
       mtmPrice: product.mtmPrice,
       deposits: depositActivity,
       privateKey: "Not Available",
-      publicKey: product.publicKey
+      publicKey: product.publicKey,
+      addressesList: product.addressesList,
+      unwindMargin: product.unwindMargin,
+      currencyName: product.currencyName,
+      underlyingName: product.underlyingName,
+      couponTooltip: product.couponTooltip
     }
   }
 
@@ -156,8 +186,11 @@ export class ProductService {
       pastEvents.map(async (product: CreatedProductDto) => {
         const existProduct = await this.getProduct(chainId, product.address);
         if (!existProduct) {
-          const wallet = this.createWallet()
-          console.log(wallet)
+          console.log("syncProducts")
+          const wallet = await this.createWallet()
+          // this.addProductAddressIntoStream(product.address)
+          const addressesList = await this.getAddressesContract(chainId,product.address)
+          console.log(addressesList)
           return this.create(
             chainId,
             product.address,
@@ -167,11 +200,14 @@ export class ProductService {
             product.status,
             product.currentCapacity,
             product.issuanceCycle,
-            (await wallet).privateKey,
-            (await wallet).publicKey
-
+            wallet.privateKey,
+            wallet.publicKey,
+            addressesList,
+            10 // 0.1
           );
         } else {
+          const addressesList = await this.getAddressesContract(chainId,product.address)
+          console.log(addressesList)
           return this.productRepository.update(
             { address: product.address },
             {
@@ -181,11 +217,52 @@ export class ProductService {
               status: product.status,
               currentCapacity: product.currentCapacity.toString(),
               issuanceCycle: product.issuanceCycle,
+              addressesList,
             },
           );
         }
       }),
     );
+  }
+
+  async getAddressesContract(chainId: number, productAddress: string): Promise<{ tokenAddress: string, ptAddress: string, marketAddress: string, currencyAddress: string }> {
+    const provider = new providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
+    const productContract = new Contract(productAddress, PRODUCT_ABI, provider);
+    console.log("Running getAddressesContract")
+    try {
+        // Fetch addresses from the contract
+        const [tokenAddress, ptAddress, marketAddress, currencyAddress] = await Promise.all([
+            productContract.tokenAddress(),
+            productContract.PT(),
+            productContract.market(),
+            productContract.currencyAddress()
+        ]);
+
+        // Return the addresses as an object
+        return {
+            tokenAddress,
+            ptAddress,
+            marketAddress,
+            currencyAddress
+        };
+    } catch (error) {
+        console.error("Error fetching addresses from contract:", error);
+        throw new Error("Failed to get addresses from contract");
+    }
+}
+
+  async addProductAddressIntoStream(productAddress: string)
+  {
+    try {      
+      // MORALIS_API_KEY_SDK
+      const response = await Moralis.Streams.addAddress({
+        "id": streamId,
+        "address": [productAddress]
+      });
+      console.log(response.raw);
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   async syncHistories(
@@ -261,14 +338,30 @@ export class ProductService {
     );
   }
 
-  async requestWithdraw(productAddress: string, address: string, amountPtUnwindPrice: number, amountOptionUnwindPrice: number,status:string ): Promise<void> {
+  async updateProductStatus(chainId: number,productAddress: string, statusNumber: number): Promise<UpdateResult>
+  {
+    console.log("updateProductStatus")
+    console.log(chainId)
+    console.log(statusNumber)
+    console.log(productAddress)
+
+    return this.productRepository.update(
+      { chainId, address: productAddress },
+      {
+        status: statusNumber,
+      },
+    );
+  }
+
+  async requestWithdraw(noOfBlock: number, productAddress: string, address: string, amountPtUnwindPrice: number, amountOptionUnwindPrice: number,status:string ): Promise<void> {
     const entity = new WithdrawRequest();
-    entity.product = productAddress;;
-    entity.address = address;
-    entity.amountPtUnwindPrice = amountPtUnwindPrice;
-    entity.amountOptionUnwindPrice = amountOptionUnwindPrice;
-    entity.status = status;
-    await this.withdrawRequestRepository.save(entity);
+    entity.noOfBlocks = noOfBlock
+    entity.product = productAddress
+    entity.address = address
+    entity.amountPtUnwindPrice = amountPtUnwindPrice
+    entity.amountOptionUnwindPrice = amountOptionUnwindPrice
+    entity.status = status
+    await this.withdrawRequestRepository.save(entity)
   }
 
   async cancelWithdraw(chainId: number, address: string, isTransferred: boolean): Promise<void> {
@@ -283,7 +376,20 @@ export class ProductService {
     }
   }
 
+async deletelWithdraw(id: number): Promise<void> {
+  const request = await this.withdrawRequestRepository.findOne({
+    where: {
+      id: id,
+    },
+  });
+  if (request) {
+    // console.log(request)
+    await this.withdrawRequestRepository.remove(request);
+  }
+}
+
   async updateWithdrawRequest(chainId: number, product: string, address: string, txid: string , amountPtUnwindPrice: number, amountOptionUnwindPrice: number): Promise<{result:string}> {
+    console.log("updateWithdrawRequest")
     let result = "failed"
     try{
       const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId])
@@ -305,6 +411,7 @@ export class ProductService {
 
   async saveProductUser(chainId: number,productAddress: string,address: string,txid: string): Promise<void>
   {
+    console.log("saveProductUser")
     try
     {
       const product = await this.productRepository.findOne({
@@ -325,6 +432,7 @@ export class ProductService {
 
   async removeProductUser(chainId: number,productAddress: string,address: string,txid: string): Promise<void>
   {
+    console.log("removeProductUser")
     try
     {
       const product = await this.productRepository.findOne({
@@ -335,7 +443,7 @@ export class ProductService {
         },
       });
       const productId = Number(product?.id)
-      this.userRepository.saveProductId(address, productId).then(() => console.log("Product ID saved to user entity"));
+      this.userRepository.removeProductId(address, productId).then(() => console.log("Product ID deleted to user entity"));
     }
     catch(e){
         console.log(e)
@@ -357,6 +465,19 @@ export class ProductService {
     }
   }
 
+  async updateOptionPaidStatus(product: string): Promise<void> {
+    console.log("updateOptionPaidStatus")
+    try{
+      this.withdrawRequestRepository.update(
+        { product},
+        { optionPaid : true}
+      );
+    }
+    catch(e){
+        console.log(e)
+      }
+  }
+
   async getWithdrawList(product: string) : Promise<{addressesList: string[], amountsList: number[]}>{
     // console.log(product)
     const request = await this.withdrawRequestRepository.createQueryBuilder('withdraw')
@@ -372,13 +493,48 @@ export class ProductService {
     return {addressesList,amountsList}
   }
 
+  async getTotalOptionBlocks(product: string): Promise<{ noOfBlocks: number }> {
+    console.log(product);
+
+    const request = await this.withdrawRequestRepository.createQueryBuilder('withdraw')
+        .select('SUM(withdraw.no_of_blocks) AS no_of_blocks')
+        .where('withdraw.product = :product', { product })
+        .andWhere('withdraw.status = :status', { status: "Success" })
+        .getRawMany();
+
+    // Extract the total number of blocks
+    const totalNoOfBlocks = request.length > 0 && request[0].no_of_blocks !== null 
+        ? Number(request[0].no_of_blocks) 
+        : 0
+    return { noOfBlocks: totalNoOfBlocks };
+  }
+
+  async getUserOptionBlocks(product: string, address: string): Promise<{ noOfBlocks: number }> {
+    console.log(product);
+    const request = await this.withdrawRequestRepository.createQueryBuilder('withdraw')
+        .select('SUM(withdraw.no_of_blocks) AS no_of_blocks')
+        .where('withdraw.product = :product', { product })
+        .andWhere('withdraw.address = :address', { address })
+        .andWhere('withdraw.status = :status', { status: "Success" })
+        .getRawMany();
+
+    // Extract the total number of blocks
+    const userNoOfBlocks = request.length > 0 && request[0].no_of_blocks !== null 
+        ? Number(request[0].no_of_blocks) 
+        : 0
+    return { noOfBlocks: userNoOfBlocks };
+  }
+
+
   async storeOptionPosition(chainId: number,productAddress: string, addressesList: string[], amountsList: number[]) : Promise<{txHash: string}>
   {
+    console.log('storeOptionPosition')
     let txHash = '0x'
     const ethers = require('ethers');
     const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
     try
-      {const product = await this.productRepository.findOne({
+      {
+        const product = await this.productRepository.findOne({
         where: {
           address: productAddress,
           chainId: chainId,
@@ -392,6 +548,13 @@ export class ProductService {
       const _productContract = new ethers.Contract(productAddress, PRODUCT_ABI, wallet);
       const tx = await _productContract.storageOptionPosition(addressesList,amountsList)
       txHash = tx.hash
+      console.log(txHash)
+      const {status} = await this.verifyTransaction(chainId, txHash)
+      if (status == 1) {
+        console.log("Transaction Admin Wallet was successful");
+        await this.updateWithdrawRequestStatus(productAddress,addressesList)
+      }
+      
     }catch(e)
     {
       console.error("StoreOptionPosition", e);
@@ -399,9 +562,34 @@ export class ProductService {
     return {txHash}
   }
 
+  async verifyTransaction(chainId: number, txid: string): Promise<{ status: number }> {
+    const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
+    let result = 0; // Default to 0 (failure)
+    console.log("verifyTransaction");
+    // Function to create a delay
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    // Wait for 20 seconds
+    await delay(20000);
+    try {
+        const receipt = await provider.getTransactionReceipt(txid);
+        // console.log(receipt);
+        if (receipt.status === 1) {
+            console.log("Transaction Admin Wallet was successful");
+            result = 1; // Set result to 1 (success)
+        }
+    } catch (e) {
+        console.error("Error verifying transaction:", e);
+        // result remains 0 for failure
+    }
+
+    return { status: result };
+}
+
+
   async getAdminWallet(chainId: number,productAddress: string) : Promise<{resultPublicKey:string}>
   {
-    let resultPublicKey = 'Not Availabe'
+    let resultPublicKey = 'Not Available'
     try
     {
       const product = await this.productRepository.findOne({
@@ -416,7 +604,28 @@ export class ProductService {
       }
     }catch (e) {
       console.error("Error fetching product:", e);
-      // Optionally, you can handle the error further or throw it
+    }
+    return { resultPublicKey };
+  }
+
+  async getAdminWalletTest(chainId: number,productAddress: string) : Promise<AdminWalletDto | null>
+  {
+    console.log({chainId,productAddress})
+    let resultPublicKey = 'Not Available'
+    try
+    {
+      const product = await this.productRepository.findOne({
+        where: {
+          address: productAddress,
+          chainId: chainId,
+        },
+      });
+      console.log(product)
+      if (product) {
+        resultPublicKey = product.publicKey
+      }
+    }catch (e) {
+      console.error("Error fetching product:", e);
     }
     return { resultPublicKey };
   }
@@ -431,216 +640,305 @@ export class ProductService {
     return{privateKey,publicKey}
   }
 
-
-  async getHolderList(tokenAddress: string): Promise<{balanceToken: number[], ownerAddress: string[]}> {
-    const response = await Moralis.EvmApi.token.getTokenOwners({
-      "chain": "0xa4b1",
-      "order": "ASC",
-      "tokenAddress": tokenAddress
-    })
-    // const balanceToken = response?.result?.map((item: any) => item?.balance)
-    // const ownerAddress = response?.result?.map((item: any) => item?.ownerAddress)
-    const balanceToken = response.result?.map((item: any) => item?.balance) ?? [];
-    const ownerAddress = response.result?.map((item: any) => item?.ownerAddress) ?? [];
-    console.log(balanceToken)
-    console.log(ownerAddress)
-    return { balanceToken, ownerAddress }
-  }
-
-  async getPtAndOption(chainId: number,walletAddress: string, productAddress: string,noOfBlock: number): Promise<{amountToken: number, amountOption:number}>
-  {
-    console.log('Paul')
-    let amountToken = 0
-    let amountOption = 0
-    try{
-      const ethers = require('ethers');
-      const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
-      const _productContract = new ethers.Contract(productAddress, PRODUCT_ABI, provider);
-      const _tokenAddress = await _productContract.tokenAddress()
-      console.log(_tokenAddress)
-      
-      const _tokenAddressInstance = new ethers.Contract(_tokenAddress, ERC20_ABI, provider)
-      const _tokenDecimals = await _tokenAddressInstance.decimals()
-      const _tokenBalance = await _tokenAddressInstance.balanceOf(walletAddress)
-      const tokenBalance = await Number(ethers.utils.formatUnits(_tokenBalance,0))
-      
-      // PT Token
-      const _ptAddress = await _productContract.PT()
-      const _ptAddressInstance = new ethers.Contract(_ptAddress, PT_ABI, provider)
-      const _ptBalance = await _ptAddressInstance.balanceOf(productAddress)
-      const _ptTotal = await Number(ethers.utils.formatUnits(_ptBalance,0))
-
-      const _currentCapacity = await _productContract.currentCapacity()
-      const currentCapacity = await Number(ethers.utils.formatUnits(_currentCapacity,0))
-
-      const product = await this.productRepository.findOne({
-        where: {
-          address: productAddress,
-          chainId: chainId,
-          isPaused: false,
-        },
-      });
-      const issuance = product!.issuanceCycle
+  async getHolderList(productAddress: string, chainId: number): Promise<{balanceToken: number[], ownerAddress: string[]}>  {
     
-      const underlyingSpotRef = issuance.underlyingSpotRef
-      const optionMinOrderSize = (issuance.optionMinOrderSize) / 10
-      const withdrawBlockSize = underlyingSpotRef * optionMinOrderSize
-
-      const early_withdraw_balance_user = (noOfBlock * withdrawBlockSize) * 10**(_tokenDecimals)
-      const total_user_block = tokenBalance/withdrawBlockSize
-      console.log(total_user_block)
-
-      if(total_user_block>=noOfBlock)
-      {
-        const alocation  = early_withdraw_balance_user / currentCapacity
-        const _amountOutMin = Math.round(_ptTotal * alocation)
-        const _marketAddrress = await _productContract.market()
-        const _currency = await _productContract.currencyAddress()
-        console.log(_amountOutMin)
-        const url = `https://api-v2.pendle.finance/sdk/api/v1/swapExactPtForToken?chainId=${chainId}&receiverAddr=${productAddress}&marketAddr=${_marketAddrress}&amountPtIn=${_amountOutMin}&tokenOutAddr=${_currency}&slippage=0.002`;
-        console.log(url)
-        const response = await fetch(url);
-        const params = await response.json();
-        console.log(params)
-        amountToken = Number(params.data.amountTokenOut)
-
-        const issuanceCycle = await _productContract.issuanceCycle()
-        const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuanceCycle.subAccountId)
-        const responseOption = await this.getTotalOptionPosition(instrumentArray, directionArray)
-
-        console.log(responseOption)
-        console.log("alocation")
-        console.log(alocation)
-        amountOption = Math.round((alocation * responseOption.totalAmountPosition * (1 - unwindMargin)) * 10**(_tokenDecimals))
-
-        console.log("amountToken")
-        console.log(amountToken)
-        console.log(typeof amountToken)
-
-        console.log("amountOption")
-        console.log(amountOption)
-        console.log(typeof amountOption)
-
-        await this.requestWithdraw(productAddress,walletAddress,amountToken,amountOption,"Pending")
+    try {
+      const {tokenAddress} = await this.getTokenAddress(chainId, productAddress)
+      if (!tokenAddress) {
+        return { balanceToken: [], ownerAddress: [] };
       }
-    }catch(e){
-      console.log(e)
-      // amountToken = 0
-      // amountOption = 72094
+      const response = await Moralis.EvmApi.token.getTokenOwners({
+        "chain": `0x${chainId.toString(16)}`,
+        "order": "ASC",
+        "tokenAddress": tokenAddress
+      })
+      const balanceToken = response.result?.map((item: any) => Number(item?.balance)) ?? [];
+      const ownerAddress = response.result?.map((item: any) => item?.ownerAddress) ?? [];
+
+      return { balanceToken, ownerAddress };
+    } catch (e) {
+      console.error("Error fetching product:", e);
+      return { balanceToken: [], ownerAddress: [] };
     }
-
-    return {amountToken,amountOption}
   }
+
+  async getTokenAddress(chainId: number, productAddress: string): Promise<{ tokenAddress: string, ptAddress: string, marketAddress: string, currencyAddress: string }> {
+    console.log("productAddress",productAddress)
+    try {
+        const product = await this.productRepository.findOne({
+            where: {
+                address: productAddress,
+                chainId: chainId,
+            },
+        });
+        // Check if the product exists
+        if (!product) {
+            throw new Error("Product not found");
+        }
+        const { tokenAddress, ptAddress, marketAddress, currencyAddress } = product.addressesList;
+        return {
+            tokenAddress,
+            ptAddress,
+            marketAddress,
+            currencyAddress,
+        };
+    } catch (e) {
+        console.error("Error fetching product:", e);
+        throw new Error("Failed to retrieve token addresses"); 
+    }
+}
+
+async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: string): Promise<{ tokenBalance: number }> {
+  const provider = new providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
+  const tokenContract = new Contract(tokenAddress, ERC20_ABI, provider);
   
-  async getDirectionInstrument(subAccountId: string): Promise<{instrumentArray: string[], directionArray: string[] }> {
+  try {
+      const tokenBalance = await tokenContract.balanceOf(walletAddress);
+      return { tokenBalance: Number(tokenBalance) }; // Convert BigNumber to number
+  } catch (error) {
+      console.error("Error fetching token balance:", error);
+      throw new Error("Unable to fetch token balance");
+  }
+}
+
+  async getPtAndOption(chainId: number, walletAddress: string, productAddress: string, noOfBlock: number): Promise<{ amountToken: number, amountOption: number }> {
+    console.log('Fetching PT and Option data...');
+    let amountToken = 0;
+    let amountOption = 0;
+    const start = new Date()
+    try {
+        const provider = new providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
+        const productContract = new Contract(productAddress, PRODUCT_ABI, provider);
+        const {tokenAddress,ptAddress,marketAddress,currencyAddress} = await this.getTokenAddress(chainId,productAddress)
+        
+        // Fetch token decimals and balance in one go
+        const tokenContract = new Contract(tokenAddress, ERC20_ABI, provider);
+        const [tokenDecimals, tokenBalance] = await Promise.all([
+            tokenContract.decimals(),
+            tokenContract.balanceOf(walletAddress)
+        ]);
+        const formattedTokenBalance = Number(utils.formatUnits(tokenBalance, tokenDecimals));
+        console.log(formattedTokenBalance)
+
+
+        // Fetch PT address and balance
+        // const ptAddress = await productContract.PT();
+        const ptContract = new Contract(ptAddress, PT_ABI, provider);
+        const ptBalance = await ptContract.balanceOf(productAddress);
+        const formattedPtBalance = Number(utils.formatUnits(ptBalance, 0));
+
+        // Fetch current capacity
+        const currentCapacity = Number(utils.formatUnits(await productContract.currentCapacity(), 0));
+
+        // Fetch product details
+        const product = await this.productRepository.findOne({
+            where: { address: productAddress, chainId: chainId, isPaused: false },
+        });
+
+        if (!product) {
+            throw new Error("Product not found");
+        }
+
+        const unwindMargin = product.unwindMargin
+        const issuance = product.issuanceCycle;
+        // console.log(issuance)
+        const underlyingSpotRef = issuance.underlyingSpotRef;
+        const optionMinOrderSize = issuance.optionMinOrderSize / 10
+        const withdrawBlockSize = underlyingSpotRef * optionMinOrderSize;
+
+        const earlyWithdrawBalanceUser = (noOfBlock * withdrawBlockSize) * 10 ** tokenDecimals;
+
+        const totalUserBlock = Math.round(formattedTokenBalance / withdrawBlockSize)
+
+        console.log(`Total user block: ${totalUserBlock}`);
+
+        if (totalUserBlock >= noOfBlock) {
+          const allocation = earlyWithdrawBalanceUser / currentCapacity;
+          const amountOutMin = Math.round(formattedPtBalance * allocation);
+
+          const url = `https://api-v2.pendle.finance/sdk/api/v1/swapExactPtForToken?chainId=${chainId}&receiverAddr=${productAddress}&marketAddr=${marketAddress}&amountPtIn=${amountOutMin}&tokenOutAddr=${currencyAddress}&slippage=0.002`;
+          console.log(url)
+          const response = await fetch(url);
+          const params = await response.json();
+          amountToken = Number(params.data.amountTokenOut);
+          
+          const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuance.subAccountId);
+          const responseOption = await this.getTotalOptionPosition(instrumentArray, directionArray);
+
+          amountOption = Math.round((optionMinOrderSize * noOfBlock * issuance.participation * responseOption.totalAmountPosition * (1 - (unwindMargin/1000))) * 10 ** tokenDecimals);
+          console.log("amountOption")
+          console.log(responseOption.totalAmountPosition)
+          // amountOption = amountOption * -1
+          console.log(amountOption)
+          await this.requestWithdraw(noOfBlock,productAddress, walletAddress, amountToken, amountOption, "Pending");  
+
+          const end = new Date()
+          const duration = end.getTime() - start.getTime(); // Calculate duration in milliseconds
+          console.log(`Execution time: ${duration} milliseconds`);  
+      }
+    } catch (error) {
+        console.error("Error in getPtAndOption:", error);
+        // Optionally, you can set default values or rethrow the error
+    }
+    return { amountToken, amountOption };
+  }
+
+  async getDirectionInstrument(subAccountId: string): Promise<{instrumentArray: string[], directionArray: string[]}> {
     return new Promise((resolve, reject) => {
-        const ws = new WebSocketServer('wss://test.deribit.com/ws/api/v2');
+        try {
+            const ws = new WebSocketServer('wss://test.deribit.com/ws/api/v2');
 
-        // Authentication message
-        const authMsg = {
-            "jsonrpc": "2.0",
-            "id": 9929,
-            "method": "public/auth",
-            "params": {
-                "grant_type": "client_credentials",
-                "client_id": "DbdFI31E",
-                "client_secret": "O8zPh_f-S65wmT5lKhh_934nUwPmGY1TDl83AgNt58A"
-            }
-        };
-
-        // Positions message
-        const positionsMsg = {
-            "jsonrpc": "2.0",
-            "id": 2236,
-            "method": "private/get_positions",
-            "params": {
-                "currency": "BTC",
-                "subaccount_id": subAccountId //59358
-            }
-        };
-
-        // Handle incoming messages
-        ws.onmessage = function (e: any) {
-            const response = JSON.parse(e.data);
-            // console.log('Received from server:', response);
-
-            // Check if the response is for authentication
-            if (response.id === authMsg.id) {
-                // Check if authentication was successful
-                if (response.result && response.result.access_token) {
-                    // console.log("Authentication successful, retrieving positions...");
-                    // Send the positions request
-                    ws.send(JSON.stringify(positionsMsg));
-                } else {
-                    // console.error("Authentication failed:", response);
-                    reject(new Error("Authentication failed"));
+            // Authentication message
+            const authMsg = {
+                "jsonrpc": "2.0",
+                "id": 9929,
+                "method": "public/auth",
+                "params": {
+                    "grant_type": "client_credentials",
+                    "client_id": process.env.CLIENT_ID,
+                    "client_secret": process.env.CLIENT_SECRET
                 }
-            }
+            };
 
-            // Check if the response is for positions
-            if (response.id === positionsMsg.id) {
-                // Handle the positions response
-                // console.log("Positions Response:", response.result);
-                const directionArray = response.result.map((i: any) => i.direction);
-                const instrumentArray = response.result.map((i: any) => i.instrument_name);
-                // console.log("Instrument Array:", instrumentArray);
+            // Positions message
+            const positionsMsg = {
+                "jsonrpc": "2.0",
+                "id": 2236,
+                "method": "private/get_positions",
+                "params": {
+                    "currency": "BTC",
+                    "subaccount_id": subAccountId
+                }
+            };
 
-                // Resolve the promise with the direction and instrument arrays
-                resolve({ instrumentArray,directionArray });
-            }
-        };
+            // Set a timeout to reject the promise if no response is received
+            const timeout = setTimeout(() => {
+                ws.close();
+                reject(new Error('WebSocket connection timeout'));
+            }, 30000); // 30 second timeout
 
-        // Handle WebSocket connection open
-        ws.onopen = function () {
-            console.log("WebSocket connection opened. Sending authentication message...");
-            ws.send(JSON.stringify(authMsg));
-        };
+            // Handle incoming messages
+            ws.onmessage = function (e: any) {
+                try {
+                    const response = JSON.parse(e.data);
+                    console.log('Received from server:', response);
 
-        // Handle WebSocket errors
-        ws.onerror = function (error: any) {
-            console.error("WebSocket error:", error);
-            reject(error); // Reject the promise on error
-        };
+                    if (response.error) {
+                        clearTimeout(timeout);
+                        ws.close();
+                        reject(new Error(`Server error: ${response.error.message}`));
+                        return;
+                    }
 
-        // Handle WebSocket connection close
-        ws.onclose = function () {
-            console.log("WebSocket connection closed.");
-        };
+                    // Check if the response is for authentication
+                    if (response.id === authMsg.id) {
+                        if (response.result && response.result.access_token) {
+                            console.log("Authentication successful, retrieving positions...");
+                            ws.send(JSON.stringify(positionsMsg));
+                        } else {
+                            clearTimeout(timeout);
+                            ws.close();
+                            reject(new Error("Authentication failed"));
+                        }
+                    }
+
+                    // Check if the response is for positions
+                    if (response.id === positionsMsg.id) {
+                        clearTimeout(timeout);
+                        ws.close();
+
+                        if (!response.result || !Array.isArray(response.result)) {
+                            reject(new Error("Invalid positions response format"));
+                            return;
+                        }
+
+                        const directionArray = response.result.map((i: any) => i.direction);
+                        const instrumentArray = response.result.map((i: any) => i.instrument_name);
+                        
+                        resolve({ instrumentArray, directionArray });
+                    }
+                } catch (error) {
+                    clearTimeout(timeout);
+                    ws.close();
+                    reject(new Error(`Error processing message: ${error.message}`));
+                }
+            };
+
+            // Handle WebSocket connection open
+            ws.onopen = function () {
+                console.log("WebSocket connection opened. Sending authentication message...");
+                try {
+                    ws.send(JSON.stringify(authMsg));
+                } catch (error) {
+                    clearTimeout(timeout);
+                    ws.close();
+                    reject(new Error(`Failed to send auth message: ${error.message}`));
+                }
+            };
+
+            // Handle WebSocket errors
+            ws.onerror = function (error: any) {
+                clearTimeout(timeout);
+                console.error("WebSocket error:", error);
+                reject(new Error(`WebSocket error: ${error.message}`));
+            };
+
+            // Handle WebSocket connection close
+            ws.onclose = function () {
+                clearTimeout(timeout);
+                console.log("WebSocket connection closed.");
+            };
+
+        } catch (error) {
+            reject(new Error(`Failed to initialize WebSocket: ${error.message}`));
+        }
     });
 }
 
 async getTotalOptionPosition(instrumentArray: string[], directionArray: string[]): Promise<{ totalAmountPosition: number }> {
   return new Promise((resolve, reject) => {
-      let totalAmountPosition = 0
-      const ws = new WebSocketServer('wss://test.deribit.com/ws/api/v2')
+      let totalAmountPosition = 0;
+      let responsesReceived = 0; // Counter to track how many responses we've received
+      const expectedResponses = instrumentArray.length; // Total number of expected responses
+
+      const ws = new WebSocketServer('wss://test.deribit.com/ws/api/v2');
+
       ws.onmessage = function (e: any) {
-          let instrumentUnwindPrice = 0
           const response = JSON.parse(e.data);
-          // console.log(response.result[0])
-          const index = instrumentArray.findIndex(instruments => instruments === response.result[0].instrument_name)
-          if(directionArray[index] == "buy")
-          {
-            instrumentUnwindPrice = response.result[0].bid_price * response.result[0].underlying_price
+          const index = instrumentArray.findIndex(instruments => instruments === response.result[0].instrument_name);
+
+          if (index !== -1) { // Ensure the index is valid
+              let instrumentUnwindPrice = 0;
+
+              if (directionArray[index] === "buy") {
+                  instrumentUnwindPrice = response.result[0].bid_price * response.result[0].estimated_delivery_price;
+              } else {
+                  instrumentUnwindPrice = response.result[0].ask_price * response.result[0].estimated_delivery_price * -1;
+              }
+              console.log(instrumentUnwindPrice);
+              totalAmountPosition += instrumentUnwindPrice;
           }
-          else{
-            instrumentUnwindPrice = response.result[0].ask_price * response.result[0].underlying_price
+
+          responsesReceived++; // Increment the counter for each response received
+
+          // Check if we've received all expected responses
+          if (responsesReceived === expectedResponses) {
+              resolve({ totalAmountPosition });
           }
-          totalAmountPosition+=instrumentUnwindPrice
-          resolve({totalAmountPosition});
       };
 
       ws.onopen = function () {
           // Send a message for each instrument
-          instrumentArray.forEach((instrument:string) => {
-            const msg = {
-                "jsonrpc": "2.0",
-                "id": 3659,
-                "method": "public/get_book_summary_by_instrument",
-                "params": {
-                    "instrument_name": instrument
-                }
-            };
-            ws.send(JSON.stringify(msg));
+          instrumentArray.forEach((instrument: string) => {
+              const msg = {
+                  "jsonrpc": "2.0",
+                  "id": 3659,
+                  "method": "public/get_book_summary_by_instrument",
+                  "params": {
+                      "instrument_name": instrument
+                  }
+              };
+              ws.send(JSON.stringify(msg));
           });
       };
 
@@ -652,44 +950,370 @@ async getTotalOptionPosition(instrumentArray: string[], directionArray: string[]
       ws.onclose = function () {
           console.log("WebSocket connection closed.");
       };
-    });
+  });
+}
+
+
+  async changeUnwindMargin(
+    chainId: number,
+    productAddress: string,
+    unwindMarginValue: number,
+    signatureAdmin: string
+): Promise<UpdateResult | null> {
+    // Create message to sign
+    const message = ethers.utils.solidityKeccak256(
+        ["uint256"],
+        [unwindMarginValue]
+    );
+
+    try {
+        // Fetch the product from the repository
+        const product = await this.productRepository.findOne({
+            where: {
+                address: productAddress,
+                chainId: chainId,
+                isPaused: false,
+            },
+        });
+
+        // Check if product exists
+        if (!product) {
+            console.warn(`Product not found for address: ${productAddress} on chain ID: ${chainId}`);
+            return null; // Return null if no product is found
+        }
+
+        const privateKey = product.privateKey;
+
+        // Check if private key is valid
+        if (!privateKey) {
+            throw new Error("Invalid private key");
+        }
+
+        const wallet = new ethers.Wallet(privateKey);
+        const signatureSystem = await wallet.signMessage(ethers.utils.arrayify(message));
+        // Compare signatures
+        if (signatureAdmin === signatureSystem) {
+            // Update the unwind margin in the repository
+            return await this.productRepository.update(
+                { chainId, address: productAddress },
+                { unwindMargin: unwindMarginValue }
+            );
+        } else {
+            console.error("Signature mismatch");
+            throw new Error("Signature mismatch");
+        }
+    } catch (error) {
+        console.error("Error changing unwind margin:", error);
+        return null; // Return null or handle error as needed
+    }
+}
+
+  async getUnwindMargin(chainId: number, productAddress: string): Promise<{ unwindMargin: number }> {
+    try {
+        const product = await this.productRepository.findOne({
+            where: {
+                address: productAddress,
+                chainId: chainId,
+            },
+        });
+
+        if (!product) {
+            console.warn(`No product found for address: ${productAddress} on chain ID: ${chainId}`);
+            return { unwindMargin: 0 }; // Return 0 if no product is found
+        }
+        return { unwindMargin: product.unwindMargin };
+    } catch (error) {
+        console.error("Error fetching product:", error);
+        return { unwindMargin: 0 }; // Return 0 in case of an error
+    }
   }
 
-// async getUserOptionPosition(chainId: number,walletAddress: string, productAddress: string,
-//   noOfBlock: number,totalOptionPosition: number): Promise<{userOptionPosition: number}>
-// {
-//   let userOptionPosition = 0
+  async getProductExpired(chainId: number, productAddress: string): Promise<{expiredFlag:boolean}> {
+    const product = await this.productRepository.findOne({
+      where: { address: productAddress, chainId: chainId },
+    });
+    return { expiredFlag: product?.isExpired || false };
+  }
+
+  async changeExpiredFlag(
+    chainId: number,
+    productAddress: string,
+    expiredFlag: boolean,
+    signatureAdmin: string
+): Promise<UpdateResult | null> {
+    // Create message to sign
+    const message = ethers.utils.solidityKeccak256(
+        ["bool"],
+        [expiredFlag]
+    );
+
+    try {
+        // Fetch the product from the repository
+        const product = await this.productRepository.findOne({
+            where: {
+                address: productAddress,
+                chainId: chainId,
+                isPaused: false,
+            },
+        });
+
+        // Check if product exists
+        if (!product) {
+            console.warn(`Product not found for address: ${productAddress} on chain ID: ${chainId}`);
+            return null; // Return null if no product is found
+        }
+
+        const privateKey = product.privateKey;
+
+        // Check if private key is valid
+        if (!privateKey) {
+            throw new Error("Invalid private key");
+        }
+
+        const wallet = new ethers.Wallet(privateKey);
+        const signatureSystem = await wallet.signMessage(ethers.utils.arrayify(message));
+        // Compare signatures
+        if (signatureAdmin === signatureSystem) {
+            // Update the unwind margin in the repository
+            return await this.productRepository.update(
+                { chainId, address: productAddress },
+                { isExpired: expiredFlag }
+            );
+        } else {
+            console.error("Signature mismatch");
+            throw new Error("Signature mismatch");
+        }
+    } catch (error) {
+        console.error("Error changing expired flag:", error);
+        return null; // Return null or handle error as needed
+    }
+}
+
+async convertChainId(chainId: number): Promise<string> {
+  return `0x${chainId.toString(16)}`;
+}
+
+async getTokenHolderListForCoupon(chainId: number, productAddress: string): Promise<{ ownerAddresses: string[], balanceToken: number[] }> {
+  try {
+    const chain = await this.convertChainId(chainId);
+    const result = await this.getCouponAndTokenAddress(productAddress);
+    if (!result.tokenAddress) {
+      console.error("Token address is undefined");
+      return { ownerAddresses: [], balanceToken: [] }; // Return an empty array if tokenAddress is undefined
+    }
+
+    const response = await Moralis.EvmApi.token.getTokenOwners({
+      "chain": chain,
+      "order": "DESC",
+      "tokenAddress": result.tokenAddress
+    });
+    console.log("getTokenHolderList");
+    console.log(response.result);
+
+    const ownerAddresses = response.result.map((tokenOwner: any) => tokenOwner.ownerAddress);
+    const balanceToken = response.result.map((tokenOwner: any) => {
+        const balance = Number(tokenOwner.balance);
+        const coupon = result.coupon ?? 0; // Default to 0 if undefined
+        return balance * (coupon / 1000);
+    });
+    return { ownerAddresses, balanceToken }; 
+  } catch (e) {
+    console.error(e);
+    return { ownerAddresses: [], balanceToken: [] }; // Return an empty array in case of an error
+  }
+}
+
+async getHolderListTest(chainId: number, productAddress: string): Promise<string> {
+  const chain = await this.convertChainId(chainId);
+  let cursor = "";
+  const {tokenAddress} = await this.getTokenAddress(chainId, productAddress);
+  console.log("tokenAddress");
+  // Initialize arrays to store all results
+  let ownerAddresses: string[] = [];
+  let balanceToken: number[] = [];
+
+  // Temporary arrays to store batches of 1000
+  let batchOwnerAddresses: string[] = [];
+  let batchBalanceToken: number[] = [];
+
+  let count = 0;
+  // Generate coupon code
+  const couponCode = await this.couponService.initCouponCode(productAddress);
+
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  while (true) {
+    try {
+      const response = await Moralis.EvmApi.token.getTokenOwners({
+        "chain": chain,
+        "order": "DESC",
+        "limit": 100, // 1-100 addresses per request
+        "cursor": cursor,
+        "tokenAddress": tokenAddress
+      });
+      // get coupon from product contract 
+      // Append new addresses and balances to batch arrays
+      const newOwnerAddresses = response.result.map((tokenOwner: any) => tokenOwner.ownerAddress);
+      const newBalanceToken = response.result.map((tokenOwner: any) => tokenOwner.balance ); // 100 = 0.01
+
+      batchOwnerAddresses = [...batchOwnerAddresses, ...newOwnerAddresses];
+      batchBalanceToken = [...batchBalanceToken, ...newBalanceToken];
+
+      // Check if batch size has reached 1000
+      if (batchOwnerAddresses.length >= 1000) {
+        count += 1;
+        await this.couponService.saveCouponList(couponCode,batchOwnerAddresses, batchBalanceToken);
+        batchOwnerAddresses = [];
+        batchBalanceToken = [];
+        console.log(`Completed ${count} times`);
+      }
+
+      // Append to the main arrays
+      ownerAddresses = [...ownerAddresses, ...newOwnerAddresses];
+      balanceToken = [...balanceToken, ...newBalanceToken];
+
+      // Update cursor for next iteration
+      cursor = response.response.cursor || "";
+
+      // Break if less than 100 new addresses were fetched
+      console.log(`Completed iteration, total addresses: ${ownerAddresses.length}`);
+      await delay(1000);
+      if (cursor === "") {
+        console.log("No more results available");
+        break;
+      }
+    } catch (error) {
+      console.error("Error fetching token owners:", error);
+      break;
+    }
+  }
+  // Save any remaining addresses in the batch
+  if (batchOwnerAddresses.length > 0) {
+    await this.couponService.saveCouponList(couponCode,batchOwnerAddresses, batchBalanceToken);
+  }
+
+  return couponCode;
+}
+
+
+// async testpush(chainId: number, productAddress: string, tokenAddress: string): Promise<{ ownerAddresses: string[], balanceToken: Number[] }> {
+//   console.log('storeOptionPosition')
+//   let txHash = '0x'
 //   const ethers = require('ethers');
 //   const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
-//   const _productContract = new ethers.Contract(productAddress, PRODUCT_ABI, provider);
-//   const _tokenAddress = await _productContract.tokenAddress()
+//   try {
+//     const privateKey = "0xca35c8a4c9927f76bc24b0863620c05837696dbeafbcbc64e08ae11658c030ab"
+//     const wallet = new ethers.Wallet(privateKey, provider);
+//     const storeCouponAddress = "0x6b5daB93D0481FeB9597dc3e46Da3057A5350B01"
+//     const storeCouponContract = new ethers.Contract(storeCouponAddress, STORE_COUPON_ABI, wallet);
+//     const couponCode = await this.getHolderListTest(chainId, productAddress, tokenAddress);
 
-//   const _tokenAddressInstance = new ethers.Contract(_tokenAddress, ERC20_ABI, provider)
-//   const _tokenDecimals = await _tokenAddressInstance.decimals()
-//   const _tokenBalance = await _tokenAddressInstance.balanceOf(walletAddress)
-//   const tokenBalance = Number(ethers.utils.formatUnits(_tokenBalance,0))/(10**_tokenDecimals)
+    
+//     const addressesLength = ownerAddresses.length;
+//     const balanceLength = balanceToken.length;
+    
+//     console.log(`Number of addresses: ${addressesLength}`);
+//     console.log(`Number of balances: ${balanceLength}`);
+//     const gasPrice = await provider.getGasPrice();
+//     const nonce = await provider.getTransactionCount(wallet.address);
+        
+//     // const tx = await storeCouponContract.coupon(ownerAddresses,balanceToken, {
+//     //   from: wallet.address,
+//     //   gasPrice: gasPrice,
+//     //   nonce: nonce
+//     // });
+//     // txHash = tx.hash
+//     // console.log(txHash)
 
-//   const _issuanceCycle = await _productContract.issuanceCycle();
-//   const underlyingSpotRef = _issuanceCycle.underlyingSpotRef.toNumber()
-//   const optionMinOrderSize = (_issuanceCycle.optionMinOrderSize.toNumber()) / 10
-//   const withdrawBlockSize = underlyingSpotRef * optionMinOrderSize
-//   const early_withdraw_balance_user = (noOfBlock * withdrawBlockSize) * 10**(_tokenDecimals)
-//   const total_user_block = tokenBalance/withdrawBlockSize
 
-//   const _totalCurrentSupply = await _productContract.totalCurrentSupply()
-//   const totalCurrentSupply = await Number(ethers.utils.formatUnits(_totalCurrentSupply,0))
-
-//   if(total_user_block>=noOfBlock)
-//   {
-//     const alocation  = early_withdraw_balance_user / totalCurrentSupply
-//     userOptionPosition = (alocation * totalOptionPosition * (1 - unwindMargin))
+//     return {ownerAddresses, balanceToken}
+//   } catch (e) {
+//     console.error(e);
+//     return {ownerAddresses: [], balanceToken: []}
 //   }
-  
-//   return {userOptionPosition}
-
 // }
 
 
 
+async getCouponAndTokenAddress(productAddress: string): Promise<{ tokenAddress: string | undefined, coupon: number | undefined }> {
+  try {
+    const product = await this.productRepository.findOne({
+      where: {
+        address: productAddress,
+      },
+    });
+    const tokenAddress = product?.addressesList.tokenAddress;
+    const coupon = product?.issuanceCycle.coupon;
+    return { tokenAddress, coupon };
+  } catch (e) {
+    console.error(e);
+    return { tokenAddress: undefined, coupon: undefined }; // Return undefined values in case of an error
+  }
+}
 
+async getTotalSupplyToken(chainId: string, productAddress: string): Promise<{totalSupply: number}> {
+  try {
+    const result = await this.getCouponAndTokenAddress(productAddress);
+
+    if (!result.tokenAddress) {
+      console.error("Token address is undefined");
+      return { totalSupply: 0 }; // Return an empty array if tokenAddress is undefined
+    }
+    const response = await Moralis.EvmApi.token.getTokenMetadata({
+      "chain": chainId,
+      "addresses": [
+        result.tokenAddress
+      ]
+    });
+    // Extract the total_supply value using type assertion
+    const totalSupplyString = (response.raw[0] as any)['total_supply'];
+    const totalSupply = Number(totalSupplyString); // Convert string to number
+    console.log("Total Supply:", totalSupply);
+
+    return {totalSupply: totalSupply}; 
+  } catch (e) {
+    console.error(e);
+    return { totalSupply: 0 }; // Return an empty array in case of an error
+  }
+}
+
+async getOptionProfit(chainId: number, productAddress: string): Promise<{optionProfit: number}> {
+  const provider = new providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
+  const productContract = new Contract(productAddress, PRODUCT_ABI, provider);
+  const optionProfit = await productContract.optionProfit();
+
+  return {optionProfit: Number(optionProfit)};
+}
+
+async getTokenHolderListForProfit(chainId: number, productAddress: string): Promise<{ ownerAddresses: string[], balanceToken: number[] }> {
+  try {
+    const {optionProfit} = await this.getOptionProfit(chainId, productAddress);
+    console.log("optionProfit");
+    console.log(optionProfit);
+    const chain = await this.convertChainId(chainId);
+    const {totalSupply} = await this.getTotalSupplyToken(chain, productAddress);
+
+    const result = await this.getCouponAndTokenAddress(productAddress);
+    if (!result.tokenAddress) {
+      console.error("Token address is undefined");
+      return { ownerAddresses: [], balanceToken: [] }; // Return an empty array if tokenAddress is undefined
+    }
+
+    const response = await Moralis.EvmApi.token.getTokenOwners({
+      "chain": chain,
+      "order": "DESC",
+      "tokenAddress": result.tokenAddress
+    });
+
+    const ownerAddresses = response.result.map((tokenOwner: any) => tokenOwner.ownerAddress);
+    const balanceToken = response.result.map((tokenOwner: any) => {
+        const balance = Number(tokenOwner.balance); // Default to 0 if undefined
+        return balance * optionProfit / totalSupply;
+    });
+    
+    return { ownerAddresses, balanceToken }; 
+  } catch (e) {
+    console.error(e);
+    return { ownerAddresses: [], balanceToken: [] }; // Return an empty array in case of an error
+  }
+}
 }

@@ -77,9 +77,19 @@ export class History {
   @OneToOne(() => Product, (product) => product.history)
   product: Product;
 
+  @Column({ nullable: true })
+  @Property()
+  eventName: string;
+
+  @Column({ nullable: true })
+  @Property()
+  eventTime: Date;
+
   @CreateDateColumn({ type: "timestamp with time zone", default: () => "CURRENT_TIMESTAMP(6)" })
   public created_at: Date;
 
   @UpdateDateColumn({ type: "timestamp with time zone", default: () => "CURRENT_TIMESTAMP(6)", onUpdate: "CURRENT_TIMESTAMP(6)" })
   public updated_at: Date;
+
+
 }

@@ -3,7 +3,11 @@ export enum HISTORY_TYPE {
   WITHDRAW = "WITHDRAW",
   WEEKLY_COUPON = "WEEKLY_COUPON",
   OPTION_PAYOUT = "OPTION_PAYOUT",
-  TRANSFER = "TRANSFER"
+  TRANSFER = "TRANSFER",
+  COUPON_CREDIT = "[SuperHedge] Option Coupon Credit",
+  OPTION_PROFIT_CREDIT = "[SuperHedge] Option Profit Credit",
+  PRINCIPAL_CREDIT = "[SuperHedge] Principal Credit",
+  EARLY_WITHDRAW = "EARLY WITHDRAW"
 }
 
 export enum WITHDRAW_TYPE {

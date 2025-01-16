@@ -1,5 +1,7 @@
 import { Property } from "@tsed/schema";
 import { CycleDto } from "./CycleDto";
+import { AddressDto } from "./AddressDto";
+
 
 export class CreatedProductDto {
   @Property()
@@ -32,4 +34,18 @@ export class CreatedProductDto {
   @Property()
   privateKey: string;
 
+  @Property()
+  addressesList: AddressDto;
+
+  @Property()
+  unwindMargin: number;
+
+  @Property()
+  currencyName: string;
+
+  @Property()
+  underlyingName: string;
+
+  @Property()
+  couponTooltip: string;
 }

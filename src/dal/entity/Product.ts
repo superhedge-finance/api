@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToOne } from "typeorm";
-import { CycleDto } from "../../apis";
+import { CycleDto,AddressDto } from "../../apis";
 import { User } from "./User";
 import { History } from "./History";
 import { Property } from "@tsed/schema";
@@ -47,6 +47,18 @@ Product {
   @Property()
   privateKey: string;
 
+  @Column({type: "json",nullable: true })
+  @Property()
+  addressesList: AddressDto;
+
+  @Column({ nullable: true })
+  @Property()
+  unwindMargin: number;
+
+  @Column({ type: 'boolean', default: false })
+  @Property()
+  isExpired: boolean = false;
+
   @Column("json")
   @Property()
   issuanceCycle: CycleDto;
@@ -84,6 +96,18 @@ Product {
 
   @OneToOne(() => History, (history) => history.product)
   history: History;
+
+  @Column({ nullable: true , default: "USDC" })
+  @Property()
+  currencyName: string;
+
+  @Column({ nullable: true , default: "ETH" })
+  @Property()
+  underlyingName: string;
+
+  @Column({ nullable: true , default: "coupon" })
+  @Property()
+  couponTooltip: string;
 
   @CreateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP(6)" })
   public created_at: Date;

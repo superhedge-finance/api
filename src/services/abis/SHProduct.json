@@ -5,13 +5,45 @@
 		{
 		  "indexed": true,
 		  "internalType": "address",
-		  "name": "_user",
+		  "name": "account",
+		  "type": "address"
+		}
+	  ],
+	  "name": "AddAdmin",
+	  "type": "event"
+	},
+	{
+	  "anonymous": false,
+	  "inputs": [
+		{
+		  "indexed": false,
+		  "internalType": "address[]",
+		  "name": "userList",
+		  "type": "address[]"
+		},
+		{
+		  "indexed": false,
+		  "internalType": "uint256[]",
+		  "name": "amountList",
+		  "type": "uint256[]"
+		}
+	  ],
+	  "name": "AddOptionProfitList",
+	  "type": "event"
+	},
+	{
+	  "anonymous": false,
+	  "inputs": [
+		{
+		  "indexed": true,
+		  "internalType": "address",
+		  "name": "user",
 		  "type": "address"
 		},
 		{
 		  "indexed": false,
 		  "internalType": "uint256",
-		  "name": "_amount",
+		  "name": "amount",
 		  "type": "uint256"
 		}
 	  ],
@@ -24,25 +56,13 @@
 		{
 		  "indexed": true,
 		  "internalType": "address",
-		  "name": "_user",
+		  "name": "user",
 		  "type": "address"
 		},
 		{
 		  "indexed": false,
 		  "internalType": "uint256",
-		  "name": "_amount",
-		  "type": "uint256"
-		},
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_tokenId",
-		  "type": "uint256"
-		},
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_supply",
+		  "name": "amount",
 		  "type": "uint256"
 		}
 	  ],
@@ -55,26 +75,26 @@
 		{
 		  "indexed": true,
 		  "internalType": "address",
-		  "name": "_qredoDeribit",
+		  "name": "qredoDeribit",
 		  "type": "address"
 		},
 		{
 		  "indexed": false,
 		  "internalType": "uint256",
-		  "name": "_optionRate",
+		  "name": "optionRate",
 		  "type": "uint256"
 		},
 		{
 		  "indexed": true,
 		  "internalType": "address",
-		  "name": "_pendleRouter",
+		  "name": "pendleRouter",
 		  "type": "address"
 		},
 		{
 		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_yieldRate",
-		  "type": "uint256"
+		  "internalType": "uint8",
+		  "name": "yieldRate",
+		  "type": "uint8"
 		}
 	  ],
 	  "name": "DistributeFunds",
@@ -86,25 +106,25 @@
 		{
 		  "indexed": true,
 		  "internalType": "address",
-		  "name": "_user",
+		  "name": "user",
 		  "type": "address"
 		},
 		{
 		  "indexed": false,
 		  "internalType": "uint256",
-		  "name": "_noOfBlock",
+		  "name": "noOfBlock",
 		  "type": "uint256"
 		},
 		{
 		  "indexed": false,
 		  "internalType": "uint256",
-		  "name": "_exactPtIn",
+		  "name": "exactPtIn",
 		  "type": "uint256"
 		},
 		{
 		  "indexed": false,
 		  "internalType": "uint256",
-		  "name": "_earlyWithdrawUser",
+		  "name": "earlyWithdrawUser",
 		  "type": "uint256"
 		}
 	  ],
@@ -113,33 +133,13 @@
 	},
 	{
 	  "anonymous": false,
-	  "inputs": [
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_optionProfit",
-		  "type": "uint256"
-		},
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_timestamp",
-		  "type": "uint256"
-		}
-	  ],
+	  "inputs": [],
 	  "name": "FundAccept",
 	  "type": "event"
 	},
 	{
 	  "anonymous": false,
-	  "inputs": [
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_timestamp",
-		  "type": "uint256"
-		}
-	  ],
+	  "inputs": [],
 	  "name": "FundLock",
 	  "type": "event"
 	},
@@ -158,39 +158,13 @@
 	},
 	{
 	  "anonymous": false,
-	  "inputs": [
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_timestamp",
-		  "type": "uint256"
-		}
-	  ],
+	  "inputs": [],
 	  "name": "Issuance",
 	  "type": "event"
 	},
 	{
 	  "anonymous": false,
-	  "inputs": [
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_prevTokenId",
-		  "type": "uint256"
-		},
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_currentTokenId",
-		  "type": "uint256"
-		},
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_timestamp",
-		  "type": "uint256"
-		}
-	  ],
+	  "inputs": [],
 	  "name": "Mature",
 	  "type": "event"
 	},
@@ -200,13 +174,13 @@
 		{
 		  "indexed": true,
 		  "internalType": "address",
-		  "name": "_user",
+		  "name": "user",
 		  "type": "address"
 		},
 		{
 		  "indexed": false,
 		  "internalType": "uint256",
-		  "name": "_amount",
+		  "name": "amount",
 		  "type": "uint256"
 		}
 	  ],
@@ -232,13 +206,13 @@
 		{
 		  "indexed": true,
 		  "internalType": "address",
-		  "name": "_from",
+		  "name": "from",
 		  "type": "address"
 		},
 		{
 		  "indexed": false,
 		  "internalType": "uint256",
-		  "name": "_amount",
+		  "name": "amount",
 		  "type": "uint256"
 		}
 	  ],
@@ -251,17 +225,30 @@
 		{
 		  "indexed": false,
 		  "internalType": "address",
-		  "name": "_pendleRouter",
+		  "name": "pendleRouter",
 		  "type": "address"
 		},
 		{
 		  "indexed": false,
 		  "internalType": "uint256",
-		  "name": "_amount",
+		  "name": "amount",
 		  "type": "uint256"
 		}
 	  ],
 	  "name": "RedeemYield",
+	  "type": "event"
+	},
+	{
+	  "anonymous": false,
+	  "inputs": [
+		{
+		  "indexed": true,
+		  "internalType": "address",
+		  "name": "account",
+		  "type": "address"
+		}
+	  ],
+	  "name": "RemoveFromWhiteList",
 	  "type": "event"
 	},
 	{
@@ -282,21 +269,8 @@
 	  "inputs": [
 		{
 		  "indexed": false,
-		  "internalType": "string",
-		  "name": "_apy",
-		  "type": "string"
-		}
-	  ],
-	  "name": "UpdateAPY",
-	  "type": "event"
-	},
-	{
-	  "anonymous": false,
-	  "inputs": [
-		{
-		  "indexed": false,
 		  "internalType": "uint256",
-		  "name": "_newCoupon",
+		  "name": "newCoupon",
 		  "type": "uint256"
 		}
 	  ],
@@ -309,88 +283,20 @@
 		{
 		  "indexed": false,
 		  "internalType": "string",
-		  "name": "_name",
-		  "type": "string"
-		}
-	  ],
-	  "name": "UpdateName",
-	  "type": "event"
-	},
-	{
-	  "anonymous": false,
-	  "inputs": [
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_optionMinOrderSize",
-		  "type": "uint256"
-		}
-	  ],
-	  "name": "UpdateOptionMinOrderSize",
-	  "type": "event"
-	},
-	{
-	  "anonymous": false,
-	  "inputs": [
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_coupon",
-		  "type": "uint256"
-		},
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_strikePrice1",
-		  "type": "uint256"
-		},
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_strikePrice2",
-		  "type": "uint256"
-		},
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_strikePrice3",
-		  "type": "uint256"
-		},
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_strikePrice4",
-		  "type": "uint256"
-		},
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_tr1",
-		  "type": "uint256"
-		},
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_tr2",
-		  "type": "uint256"
-		},
-		{
-		  "indexed": false,
-		  "internalType": "string",
-		  "name": "_apy",
+		  "name": "name",
 		  "type": "string"
 		},
 		{
 		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_underlyingSpotRef",
-		  "type": "uint256"
+		  "internalType": "address",
+		  "name": "router",
+		  "type": "address"
 		},
 		{
 		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_optionMinOrderSize",
-		  "type": "uint256"
+		  "internalType": "address",
+		  "name": "market",
+		  "type": "address"
 		}
 	  ],
 	  "name": "UpdateParameters",
@@ -402,61 +308,53 @@
 		{
 		  "indexed": false,
 		  "internalType": "uint256",
-		  "name": "_strikePrice1",
+		  "name": "strikePrice1",
 		  "type": "uint256"
 		},
 		{
 		  "indexed": false,
 		  "internalType": "uint256",
-		  "name": "_strikePrice2",
+		  "name": "strikePrice2",
 		  "type": "uint256"
 		},
 		{
 		  "indexed": false,
 		  "internalType": "uint256",
-		  "name": "_strikePrice3",
+		  "name": "strikePrice3",
 		  "type": "uint256"
 		},
 		{
 		  "indexed": false,
 		  "internalType": "uint256",
-		  "name": "_strikePrice4",
+		  "name": "strikePrice4",
 		  "type": "uint256"
-		}
-	  ],
-	  "name": "UpdateStrikePrices",
-	  "type": "event"
-	},
-	{
-	  "anonymous": false,
-	  "inputs": [
+		},
+		{
+		  "indexed": false,
+		  "internalType": "uint256",
+		  "name": "tr1",
+		  "type": "uint256"
+		},
+		{
+		  "indexed": false,
+		  "internalType": "uint256",
+		  "name": "tr2",
+		  "type": "uint256"
+		},
 		{
 		  "indexed": false,
 		  "internalType": "string",
-		  "name": "_subAccountId",
+		  "name": "apy",
 		  "type": "string"
-		}
-	  ],
-	  "name": "UpdateSubAccountId",
-	  "type": "event"
-	},
-	{
-	  "anonymous": false,
-	  "inputs": [
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_newTr1",
-		  "type": "uint256"
 		},
 		{
 		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_newTr2",
-		  "type": "uint256"
+		  "internalType": "uint8",
+		  "name": "underlyingSpotRef",
+		  "type": "uint8"
 		}
 	  ],
-	  "name": "UpdateTRs",
+	  "name": "UpdateStructure",
 	  "type": "event"
 	},
 	{
@@ -465,30 +363,11 @@
 		{
 		  "indexed": false,
 		  "internalType": "uint256",
-		  "name": "_issuanceDate",
-		  "type": "uint256"
-		},
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_maturityDate",
+		  "name": "totalOptionPosition",
 		  "type": "uint256"
 		}
 	  ],
-	  "name": "UpdateTimes",
-	  "type": "event"
-	},
-	{
-	  "anonymous": false,
-	  "inputs": [
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_underlyingSpotRef",
-		  "type": "uint256"
-		}
-	  ],
-	  "name": "UpdateUnderlyingSpotRef",
+	  "name": "UserOptionPositionPaid",
 	  "type": "event"
 	},
 	{
@@ -497,13 +376,26 @@
 		{
 		  "indexed": true,
 		  "internalType": "address",
-		  "name": "_user",
+		  "name": "account",
+		  "type": "address"
+		}
+	  ],
+	  "name": "WhiteList",
+	  "type": "event"
+	},
+	{
+	  "anonymous": false,
+	  "inputs": [
+		{
+		  "indexed": true,
+		  "internalType": "address",
+		  "name": "user",
 		  "type": "address"
 		},
 		{
 		  "indexed": false,
 		  "internalType": "uint256",
-		  "name": "_amount",
+		  "name": "amount",
 		  "type": "uint256"
 		}
 	  ],
@@ -516,13 +408,13 @@
 		{
 		  "indexed": true,
 		  "internalType": "address",
-		  "name": "_user",
+		  "name": "user",
 		  "type": "address"
 		},
 		{
 		  "indexed": false,
 		  "internalType": "uint256",
-		  "name": "_amount",
+		  "name": "amount",
 		  "type": "uint256"
 		}
 	  ],
@@ -535,37 +427,13 @@
 		{
 		  "indexed": true,
 		  "internalType": "address",
-		  "name": "_user",
+		  "name": "user",
 		  "type": "address"
 		},
 		{
 		  "indexed": false,
 		  "internalType": "uint256",
-		  "name": "_amount",
-		  "type": "uint256"
-		},
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_prevTokenId",
-		  "type": "uint256"
-		},
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_prevSupply",
-		  "type": "uint256"
-		},
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_currentTokenId",
-		  "type": "uint256"
-		},
-		{
-		  "indexed": false,
-		  "internalType": "uint256",
-		  "name": "_currentSupply",
+		  "name": "amount",
 		  "type": "uint256"
 		}
 	  ],
@@ -610,6 +478,19 @@
 	  "type": "function"
 	},
 	{
+	  "inputs": [],
+	  "name": "YT",
+	  "outputs": [
+		{
+		  "internalType": "contract IPYieldToken",
+		  "name": "",
+		  "type": "address"
+		}
+	  ],
+	  "stateMutability": "view",
+	  "type": "function"
+	},
+	{
 	  "inputs": [
 		{
 		  "internalType": "address",
@@ -618,6 +499,24 @@
 		}
 	  ],
 	  "name": "addAdmin",
+	  "outputs": [],
+	  "stateMutability": "nonpayable",
+	  "type": "function"
+	},
+	{
+	  "inputs": [
+		{
+		  "internalType": "address[]",
+		  "name": "_userList",
+		  "type": "address[]"
+		},
+		{
+		  "internalType": "uint256[]",
+		  "name": "_amountList",
+		  "type": "uint256[]"
+		}
+	  ],
+	  "name": "addOptionProfitList",
 	  "outputs": [],
 	  "stateMutability": "nonpayable",
 	  "type": "function"
@@ -639,12 +538,12 @@
 	  "inputs": [
 		{
 		  "internalType": "address[]",
-		  "name": "_holdersList",
+		  "name": "_userList",
 		  "type": "address[]"
 		},
 		{
 		  "internalType": "uint256[]",
-		  "name": "_amountHoldersList",
+		  "name": "_amountList",
 		  "type": "uint256[]"
 		}
 	  ],
@@ -713,32 +612,6 @@
 	},
 	{
 	  "inputs": [],
-	  "name": "currentTokenId",
-	  "outputs": [
-		{
-		  "internalType": "uint256",
-		  "name": "",
-		  "type": "uint256"
-		}
-	  ],
-	  "stateMutability": "view",
-	  "type": "function"
-	},
-	{
-	  "inputs": [],
-	  "name": "deadAddress",
-	  "outputs": [
-		{
-		  "internalType": "address",
-		  "name": "",
-		  "type": "address"
-		}
-	  ],
-	  "stateMutability": "view",
-	  "type": "function"
-	},
-	{
-	  "inputs": [],
 	  "name": "defaultApprox",
 	  "outputs": [
 		{
@@ -791,9 +664,9 @@
 	{
 	  "inputs": [
 		{
-		  "internalType": "uint256",
+		  "internalType": "uint8",
 		  "name": "_yieldRate",
-		  "type": "uint256"
+		  "type": "uint8"
 		}
 	  ],
 	  "name": "distributeFunds",
@@ -927,9 +800,9 @@
 		{
 		  "components": [
 			{
-			  "internalType": "uint256",
+			  "internalType": "uint8",
 			  "name": "coupon",
-			  "type": "uint256"
+			  "type": "uint8"
 			},
 			{
 			  "internalType": "uint256",
@@ -977,19 +850,24 @@
 			  "type": "string"
 			},
 			{
-			  "internalType": "uint256",
+			  "internalType": "uint8",
 			  "name": "underlyingSpotRef",
-			  "type": "uint256"
+			  "type": "uint8"
 			},
 			{
-			  "internalType": "uint256",
+			  "internalType": "uint8",
 			  "name": "optionMinOrderSize",
-			  "type": "uint256"
+			  "type": "uint8"
 			},
 			{
 			  "internalType": "string",
 			  "name": "subAccountId",
 			  "type": "string"
+			},
+			{
+			  "internalType": "uint8",
+			  "name": "participation",
+			  "type": "uint8"
 			}
 		  ],
 		  "internalType": "struct DataTypes.IssuanceCycle",
@@ -1047,9 +925,9 @@
 	  "name": "issuanceCycle",
 	  "outputs": [
 		{
-		  "internalType": "uint256",
+		  "internalType": "uint8",
 		  "name": "coupon",
-		  "type": "uint256"
+		  "type": "uint8"
 		},
 		{
 		  "internalType": "uint256",
@@ -1097,19 +975,24 @@
 		  "type": "string"
 		},
 		{
-		  "internalType": "uint256",
+		  "internalType": "uint8",
 		  "name": "underlyingSpotRef",
-		  "type": "uint256"
+		  "type": "uint8"
 		},
 		{
-		  "internalType": "uint256",
+		  "internalType": "uint8",
 		  "name": "optionMinOrderSize",
-		  "type": "uint256"
+		  "type": "uint8"
 		},
 		{
 		  "internalType": "string",
 		  "name": "subAccountId",
 		  "type": "string"
+		},
+		{
+		  "internalType": "uint8",
+		  "name": "participation",
+		  "type": "uint8"
 		}
 	  ],
 	  "stateMutability": "view",
@@ -1240,19 +1123,6 @@
 	  "type": "function"
 	},
 	{
-	  "inputs": [],
-	  "name": "prevTokenId",
-	  "outputs": [
-		{
-		  "internalType": "uint256",
-		  "name": "",
-		  "type": "uint256"
-		}
-	  ],
-	  "stateMutability": "view",
-	  "type": "function"
-	},
-	{
 	  "inputs": [
 		{
 		  "internalType": "address",
@@ -1261,25 +1131,6 @@
 		}
 	  ],
 	  "name": "principalBalance",
-	  "outputs": [
-		{
-		  "internalType": "uint256",
-		  "name": "",
-		  "type": "uint256"
-		}
-	  ],
-	  "stateMutability": "view",
-	  "type": "function"
-	},
-	{
-	  "inputs": [
-		{
-		  "internalType": "address",
-		  "name": "",
-		  "type": "address"
-		}
-	  ],
-	  "name": "principalBalanceList",
 	  "outputs": [
 		{
 		  "internalType": "uint256",
@@ -1351,19 +1202,6 @@
 	},
 	{
 	  "inputs": [],
-	  "name": "shNFT",
-	  "outputs": [
-		{
-		  "internalType": "address",
-		  "name": "",
-		  "type": "address"
-		}
-	  ],
-	  "stateMutability": "view",
-	  "type": "function"
-	},
-	{
-	  "inputs": [],
 	  "name": "status",
 	  "outputs": [
 		{
@@ -1421,7 +1259,7 @@
 	},
 	{
 	  "inputs": [],
-	  "name": "totalCurrentSupply",
+	  "name": "totalNumberOfBlocks",
 	  "outputs": [
 		{
 		  "internalType": "uint256",
@@ -1468,22 +1306,9 @@
 	{
 	  "inputs": [
 		{
-		  "internalType": "string",
-		  "name": "_apy",
-		  "type": "string"
-		}
-	  ],
-	  "name": "updateAPY",
-	  "outputs": [],
-	  "stateMutability": "nonpayable",
-	  "type": "function"
-	},
-	{
-	  "inputs": [
-		{
-		  "internalType": "uint256",
+		  "internalType": "uint8",
 		  "name": "_newCoupon",
-		  "type": "uint256"
+		  "type": "uint8"
 		}
 	  ],
 	  "name": "updateCoupon",
@@ -1497,33 +1322,102 @@
 		  "internalType": "string",
 		  "name": "_name",
 		  "type": "string"
-		}
-	  ],
-	  "name": "updateName",
-	  "outputs": [],
-	  "stateMutability": "nonpayable",
-	  "type": "function"
-	},
-	{
-	  "inputs": [
-		{
-		  "internalType": "uint256",
-		  "name": "_optionMinOrderSize",
-		  "type": "uint256"
-		}
-	  ],
-	  "name": "updateOptionMinOrderSize",
-	  "outputs": [],
-	  "stateMutability": "nonpayable",
-	  "type": "function"
-	},
-	{
-	  "inputs": [
-		{
-		  "internalType": "uint256",
-		  "name": "_coupon",
-		  "type": "uint256"
 		},
+		{
+		  "components": [
+			{
+			  "internalType": "uint8",
+			  "name": "coupon",
+			  "type": "uint8"
+			},
+			{
+			  "internalType": "uint256",
+			  "name": "strikePrice1",
+			  "type": "uint256"
+			},
+			{
+			  "internalType": "uint256",
+			  "name": "strikePrice2",
+			  "type": "uint256"
+			},
+			{
+			  "internalType": "uint256",
+			  "name": "strikePrice3",
+			  "type": "uint256"
+			},
+			{
+			  "internalType": "uint256",
+			  "name": "strikePrice4",
+			  "type": "uint256"
+			},
+			{
+			  "internalType": "uint256",
+			  "name": "tr1",
+			  "type": "uint256"
+			},
+			{
+			  "internalType": "uint256",
+			  "name": "tr2",
+			  "type": "uint256"
+			},
+			{
+			  "internalType": "uint256",
+			  "name": "issuanceDate",
+			  "type": "uint256"
+			},
+			{
+			  "internalType": "uint256",
+			  "name": "maturityDate",
+			  "type": "uint256"
+			},
+			{
+			  "internalType": "string",
+			  "name": "apy",
+			  "type": "string"
+			},
+			{
+			  "internalType": "uint8",
+			  "name": "underlyingSpotRef",
+			  "type": "uint8"
+			},
+			{
+			  "internalType": "uint8",
+			  "name": "optionMinOrderSize",
+			  "type": "uint8"
+			},
+			{
+			  "internalType": "string",
+			  "name": "subAccountId",
+			  "type": "string"
+			},
+			{
+			  "internalType": "uint8",
+			  "name": "participation",
+			  "type": "uint8"
+			}
+		  ],
+		  "internalType": "struct DataTypes.IssuanceCycle",
+		  "name": "_issuanceCycle",
+		  "type": "tuple"
+		},
+		{
+		  "internalType": "address",
+		  "name": "_router",
+		  "type": "address"
+		},
+		{
+		  "internalType": "address",
+		  "name": "_market",
+		  "type": "address"
+		}
+	  ],
+	  "name": "updateParameters",
+	  "outputs": [],
+	  "stateMutability": "nonpayable",
+	  "type": "function"
+	},
+	{
+	  "inputs": [
 		{
 		  "internalType": "uint256",
 		  "name": "_strikePrice1",
@@ -1560,112 +1454,12 @@
 		  "type": "string"
 		},
 		{
-		  "internalType": "uint256",
+		  "internalType": "uint8",
 		  "name": "_underlyingSpotRef",
-		  "type": "uint256"
-		},
-		{
-		  "internalType": "uint256",
-		  "name": "_optionMinOrderSize",
-		  "type": "uint256"
-		},
-		{
-		  "internalType": "string",
-		  "name": "_subAccountId",
-		  "type": "string"
+		  "type": "uint8"
 		}
 	  ],
-	  "name": "updateParameters",
-	  "outputs": [],
-	  "stateMutability": "nonpayable",
-	  "type": "function"
-	},
-	{
-	  "inputs": [
-		{
-		  "internalType": "uint256",
-		  "name": "_strikePrice1",
-		  "type": "uint256"
-		},
-		{
-		  "internalType": "uint256",
-		  "name": "_strikePrice2",
-		  "type": "uint256"
-		},
-		{
-		  "internalType": "uint256",
-		  "name": "_strikePrice3",
-		  "type": "uint256"
-		},
-		{
-		  "internalType": "uint256",
-		  "name": "_strikePrice4",
-		  "type": "uint256"
-		}
-	  ],
-	  "name": "updateStrikePrices",
-	  "outputs": [],
-	  "stateMutability": "nonpayable",
-	  "type": "function"
-	},
-	{
-	  "inputs": [
-		{
-		  "internalType": "string",
-		  "name": "_subAccountId",
-		  "type": "string"
-		}
-	  ],
-	  "name": "updateSubAccountId",
-	  "outputs": [],
-	  "stateMutability": "nonpayable",
-	  "type": "function"
-	},
-	{
-	  "inputs": [
-		{
-		  "internalType": "uint256",
-		  "name": "_newTr1",
-		  "type": "uint256"
-		},
-		{
-		  "internalType": "uint256",
-		  "name": "_newTr2",
-		  "type": "uint256"
-		}
-	  ],
-	  "name": "updateTRs",
-	  "outputs": [],
-	  "stateMutability": "nonpayable",
-	  "type": "function"
-	},
-	{
-	  "inputs": [
-		{
-		  "internalType": "uint256",
-		  "name": "_issuanceDate",
-		  "type": "uint256"
-		},
-		{
-		  "internalType": "uint256",
-		  "name": "_maturityDate",
-		  "type": "uint256"
-		}
-	  ],
-	  "name": "updateTimes",
-	  "outputs": [],
-	  "stateMutability": "nonpayable",
-	  "type": "function"
-	},
-	{
-	  "inputs": [
-		{
-		  "internalType": "uint256",
-		  "name": "_underlyingSpotRef",
-		  "type": "uint256"
-		}
-	  ],
-	  "name": "updateUnderlyingSpotRef",
+	  "name": "updateStructure",
 	  "outputs": [],
 	  "stateMutability": "nonpayable",
 	  "type": "function"
@@ -1696,7 +1490,7 @@
 	},
 	{
 	  "inputs": [],
-	  "name": "userOptionPosition",
+	  "name": "userOptionPositionPaid",
 	  "outputs": [],
 	  "stateMutability": "nonpayable",
 	  "type": "function"
