@@ -1,37 +1,37 @@
-name: Run Migration
+# name: Run Migration
 
-on:
-  push:
-    paths:
-      - "migration/**"
-    branches:
-      - main
-  workflow_dispatch:
+# on:
+#   push:
+#     paths:
+#       - "migration/**"
+#     branches:
+#       - main
+#   workflow_dispatch:
 
-jobs:
-  run_migration:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+# jobs:
+#   run_migration:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v3
 
-      - name: Set Node.js 16.x
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16.x
+#       - name: Set Node.js 16.x
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: 16.x
 
-      - name: Install NPM Packages
-        uses: borales/actions-yarn@v4
-        with:
-          cmd: install
+#       - name: Install NPM Packages
+#         uses: borales/actions-yarn@v4
+#         with:
+#           cmd: install
 
-      - name: Run Migration
-        uses: borales/actions-yarn@v4
-        with:
-          cmd: migration:run
-        env:
-          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
-          DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
-          DATABASE_USER: ${{ secrets.DATABASE_USER }}
-          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
-          DATABASE_PORT: ${{ secrets.DATABASE_PORT }}
+#       - name: Run Migration
+#         uses: borales/actions-yarn@v4
+#         with:
+#           cmd: migration:run
+#         env:
+#           DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+#           DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+#           DATABASE_USER: ${{ secrets.DATABASE_USER }}
+#           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+#           DATABASE_PORT: ${{ secrets.DATABASE_PORT }}

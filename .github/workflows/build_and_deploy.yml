@@ -1,50 +1,50 @@
-name: Build and Deploy
+# name: Build and Deploy
 
-on:
-  push:
-    paths:
-      - "src/**"
-    branches:
-      - main
-  workflow_dispatch:
+# on:
+#   push:
+#     paths:
+#       - "src/**"
+#     branches:
+#       - main
+#   workflow_dispatch:
 
-jobs:
-  build_and_deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install SSH Key
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          known_hosts: "!"
+# jobs:
+#   build_and_deploy:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Install SSH Key
+#         uses: shimataro/ssh-key-action@v2
+#         with:
+#           key: ${{ secrets.SSH_PRIVATE_KEY }}
+#           known_hosts: "!"
 
-      - name: Add Known Hosts
-        run: ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
+#       - name: Add Known Hosts
+#         run: ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
 
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+#       - name: Checkout Repository
+#         uses: actions/checkout@v3
 
-      - name: Upload Source Files
-        run: rsync -avzr --exclude .github --exclude node_modules --del ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/superhedge/superhedge-api/
+#       - name: Upload Source Files
+#         run: rsync -avzr --exclude .github --exclude node_modules --del ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/superhedge/superhedge-api/
 
-      - name: Build Image
-        run: ssh -T ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "docker build -t superhedge/api --build-arg http_proxy --build-arg https_proxy --build-arg no_proxy /home/${{ secrets.SSH_USER }}/superhedge/superhedge-api/"
+#       - name: Build Image
+#         run: ssh -T ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "docker build -t superhedge/api --build-arg http_proxy --build-arg https_proxy --build-arg no_proxy /home/${{ secrets.SSH_USER }}/superhedge/superhedge-api/"
 
-      - name: Restart Container
-        run: |
-          ssh -T ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-          "
-          docker stop superhedge_api
-          docker rm superhedge_api
-          docker run -d --name superhedge_api --restart unless-stopped --network superhedge -p 3000:3000 --log-driver gcplogs \\
-            -v /home/${{ secrets.SSH_USER }}/superhedge/storage:/superhedge_storage \\
-            -e DATABASE_HOST=${{ secrets.DATABASE_HOST }} \\
-            -e DATABASE_NAME=${{ secrets.DATABASE_NAME }} \\
-            -e DATABASE_USER=${{ secrets.DATABASE_USER }} \\
-            -e DATABASE_PASSWORD='${{ secrets.DATABASE_PASSWORD }}' \\
-            -e DATABASE_PORT=${{ secrets.DATABASE_PORT }} \\
-            -e IMAGES_SRC_DIR=/superhedge_storage/assets \\
-            -e IMAGES_DIST_DIR=/superhedge_storage/images \\
-            superhedge/api
-          docker image prune -f
-          "
+#       - name: Restart Container
+#         run: |
+#           ssh -T ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+#           "
+#           docker stop superhedge_api
+#           docker rm superhedge_api
+#           docker run -d --name superhedge_api --restart unless-stopped --network superhedge -p 3000:3000 --log-driver gcplogs \\
+#             -v /home/${{ secrets.SSH_USER }}/superhedge/storage:/superhedge_storage \\
+#             -e DATABASE_HOST=${{ secrets.DATABASE_HOST }} \\
+#             -e DATABASE_NAME=${{ secrets.DATABASE_NAME }} \\
+#             -e DATABASE_USER=${{ secrets.DATABASE_USER }} \\
+#             -e DATABASE_PASSWORD='${{ secrets.DATABASE_PASSWORD }}' \\
+#             -e DATABASE_PORT=${{ secrets.DATABASE_PORT }} \\
+#             -e IMAGES_SRC_DIR=/superhedge_storage/assets \\
+#             -e IMAGES_DIST_DIR=/superhedge_storage/images \\
+#             superhedge/api
+#           docker image prune -f
+#           "
