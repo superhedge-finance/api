@@ -47,8 +47,8 @@ export class UserService {
 
       const userList = jsonData.filter(entry => productIds.includes(entry.id));
       const withoutUserList = jsonData.filter(entry => !productIds.includes(entry.id));
-      console.log(userList)
-      console.log(withoutUserList)
+      // console.log(userList)
+      // console.log(withoutUserList)
       // Check and Delete Product
       for (const item of userList){
         const { tokenBalance } = await this.productService.checkTokenBalance(chainId, item.tokenAddress, walletAddress);
