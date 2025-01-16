@@ -395,7 +395,7 @@ async deletelWithdraw(id: number): Promise<void> {
       const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId])
       const receipt = await provider.getTransactionReceipt(txid);
       if (receipt && receipt.status === 1) {
-        console.log("Transaction was successful");
+        console.log("Transaction was successful!");
         this.withdrawRequestRepository.update(
           { product,address,amountPtUnwindPrice, amountOptionUnwindPrice},
           { txid: txid, status: "Success"}
