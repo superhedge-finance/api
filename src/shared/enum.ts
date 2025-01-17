@@ -18,6 +18,7 @@ export enum WITHDRAW_TYPE {
 }
 
 export enum SUPPORT_CHAIN_IDS {
+  ETH = 1,
   GOERLI = 5,
   MOONBEAM_ALPHA = 1287,
   ARBITRUM_GOERLI = 421613,
