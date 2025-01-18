@@ -180,16 +180,17 @@ export class ProductService {
       couponTooltip: product.couponTooltip
     }
   }
-
   async syncProducts(chainId: number, pastEvents: CreatedProductDto[]): Promise<void> {
     await Promise.all(
       pastEvents.map(async (product: CreatedProductDto) => {
         const existProduct = await this.getProduct(chainId, product.address);
+        // Convert the cycle values before creating/updating
+        const convertedCycle = await this.convertCycleValues(product.issuanceCycle);
+        
         if (!existProduct) {
           console.log("syncProducts")
           const wallet = await this.createWallet()
-          // this.addProductAddressIntoStream(product.address)
-          const addressesList = await this.getAddressesContract(chainId,product.address)
+          const addressesList = await this.getAddressesContract(chainId, product.address)
           console.log(addressesList)
           return this.create(
             chainId,
@@ -199,14 +200,14 @@ export class ProductService {
             BigNumber.from(product.maxCapacity),
             product.status,
             product.currentCapacity,
-            product.issuanceCycle,
+            convertedCycle, // Use converted cycle here
             wallet.privateKey,
             wallet.publicKey,
             addressesList,
-            10 // 0.1
+            10
           );
         } else {
-          const addressesList = await this.getAddressesContract(chainId,product.address)
+          const addressesList = await this.getAddressesContract(chainId, product.address)
           console.log(addressesList)
           return this.productRepository.update(
             { address: product.address },
@@ -216,7 +217,7 @@ export class ProductService {
               maxCapacity: product.maxCapacity,
               status: product.status,
               currentCapacity: product.currentCapacity.toString(),
-              issuanceCycle: product.issuanceCycle,
+              issuanceCycle: convertedCycle, // Use converted cycle here
               addressesList,
             },
           );
@@ -224,6 +225,40 @@ export class ProductService {
       }),
     );
   }
+
+  // async syncProducts(chainId: number, pastEvents: CreatedProductDto[]): Promise<void> {
+  //   console.log("syncProducts")
+  //   console.log(pastEvents)
+    
+  //   // Validate chainId is a valid enum value
+  //   if (!Object.values(SUPPORT_CHAINS).includes(chainId)) {
+  //     throw new Error(`Invalid chainId: ${chainId}. Must be one of: ${Object.values(SUPPORT_CHAINS).join(', ')}`);
+  //   }
+
+  //   await Promise.all(
+  //     pastEvents.map(async (product: CreatedProductDto) => {
+  //       const convertedCycle = await this.convertCycleValues(product.issuanceCycle);
+  //       const wallet = await this.createWallet()
+  //       const addressesList = await this.getAddressesContract(chainId, product.address)
+  //       console.log(addressesList)
+        
+  //       return this.create(
+  //         chainId,
+  //         product.address, 
+  //         product.name,
+  //         product.underlying,
+  //         BigNumber.from(product.maxCapacity),
+  //         product.status,
+  //         product.currentCapacity,
+  //         convertedCycle,
+  //         wallet.privateKey,
+  //         wallet.publicKey,
+  //         addressesList,
+  //         10
+  //       );
+  //     }),
+  //   );
+  // }
 
   async getAddressesContract(chainId: number, productAddress: string): Promise<{ tokenAddress: string, ptAddress: string, marketAddress: string, currencyAddress: string }> {
     const provider = new providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
@@ -389,7 +424,7 @@ async deletelWithdraw(id: number): Promise<void> {
 }
 
   async updateWithdrawRequest(chainId: number, product: string, address: string, txid: string , amountPtUnwindPrice: number, amountOptionUnwindPrice: number): Promise<{result:string}> {
-    console.log("updateWithdrawRequest!")
+    console.log("updateWithdrawRequest")
     let result = "failed"
     try{
       const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId])
@@ -1315,5 +1350,29 @@ async getTokenHolderListForProfit(chainId: number, productAddress: string): Prom
     console.error(e);
     return { ownerAddresses: [], balanceToken: [] }; // Return an empty array in case of an error
   }
+}
+
+async convertCycleValues(cycle: any): Promise<CycleDto> {
+  const convertedCycle = new CycleDto();
+  
+  // Convert BigNumber values to numbers
+  convertedCycle.coupon = cycle.coupon ? Number(ethers.utils.formatUnits(cycle.coupon, 0)) : 0;
+  convertedCycle.underlyingSpotRef = cycle.underlyingSpotRef ? Number(ethers.utils.formatUnits(cycle.underlyingSpotRef, 0)) : 0;
+  convertedCycle.optionMinOrderSize = cycle.optionMinOrderSize ? Number(ethers.utils.formatUnits(cycle.optionMinOrderSize, 0)) : 0;
+  
+  // Convert other values that are already numbers or strings
+  convertedCycle.strikePrice1 = Number(cycle.strikePrice1);
+  convertedCycle.strikePrice2 = Number(cycle.strikePrice2);
+  convertedCycle.strikePrice3 = Number(cycle.strikePrice3);
+  convertedCycle.strikePrice4 = Number(cycle.strikePrice4);
+  convertedCycle.tr1 = Number(cycle.tr1);
+  convertedCycle.tr2 = Number(cycle.tr2);
+  convertedCycle.issuanceDate = Number(cycle.issuanceDate);
+  convertedCycle.maturityDate = Number(cycle.maturityDate);
+  convertedCycle.apy = cycle.apy;
+  convertedCycle.subAccountId = cycle.subAccountId;
+  convertedCycle.participation = Number(cycle.participation);
+
+  return convertedCycle;
 }
 }

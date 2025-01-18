@@ -13,28 +13,28 @@ export class RefCodeController {
   @Inject()
   private readonly refCodeService: RefCodeService;
 
-  @Post("/check-whitelist")
-  async checkWhitelist(
-    @QueryParams("address") address: string
-  ): Promise<boolean> {
-    return this.refCodeService.checkWhitelist(address);
-  }
-
-  // @Post("/create-ref-code")
-  // async createRefCode(
-  //   @QueryParams("refCodeName") refCodeName: string,
-  //   @QueryParams("quantity") quantity: number
-  // ): Promise<string> {
-  //   return await this.refCodeService.createRefCode(refCodeName,quantity);
+  // @Post("/check-whitelist")
+  // async checkWhitelist(
+  //   @QueryParams("address") address: string
+  // ): Promise<boolean> {
+  //   return this.refCodeService.checkWhitelist(address);
   // }
 
-  @Post("/signUp")
-  async useRefCode(
-    @QueryParams("refcode") refcode: string,
-    @QueryParams("address") address: string
-  ): Promise<boolean> {
-    return this.refCodeService.useRefCode(refcode,address);
-  }
+  // // @Post("/create-ref-code")
+  // // async createRefCode(
+  // //   @QueryParams("refCodeName") refCodeName: string,
+  // //   @QueryParams("quantity") quantity: number
+  // // ): Promise<string> {
+  // //   return await this.refCodeService.createRefCode(refCodeName,quantity);
+  // // }
+
+  // @Post("/signUp")
+  // async useRefCode(
+  //   @QueryParams("refcode") refcode: string,
+  //   @QueryParams("address") address: string
+  // ): Promise<boolean> {
+  //   return this.refCodeService.useRefCode(refcode,address);
+  // }
 }
 
 

@@ -99,9 +99,6 @@ export class ContractService {
 
     const parsedEvents: CreatedProductDto[] = [];
     console.log("getPastEvents")
-    console.log(events)
-    console.log("----------")
-    console.log(parsedEvents)
     for (const event of events) {
       const parsed = await this.eventToArgs(chainId, event);
       parsedEvents.push(parsed);
