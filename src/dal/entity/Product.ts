@@ -63,7 +63,7 @@ Product {
   @Property()
   issuanceCycle: CycleDto;
 
-  @Column({ type: "enum", enum: SUPPORT_CHAIN_IDS, default: SUPPORT_CHAIN_IDS.GOERLI })
+  @Column({ type: "enum", enum: SUPPORT_CHAIN_IDS, default: SUPPORT_CHAIN_IDS.MAINNET })
   @Property()
   chainId: number;
 
