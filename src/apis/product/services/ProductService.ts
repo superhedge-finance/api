@@ -104,19 +104,74 @@ export class ProductService {
     });
   }
 
-  getProducts(chainId: number): Promise<Array<Product>> {
-    return this.productRepository.find({
-      select: ["id", "name", "address","underlying","issuanceCycle", 
-              "status", "chainId","currentCapacity","maxCapacity","addressesList","currencyName","underlyingName","couponTooltip"],
-      where: {
-        status: Not(0),
-        isPaused: false,
-        chainId: chainId,
-      },
-      order: {
-        created_at: "ASC",
-      },
-    });
+  // getProducts(chainId: number): Promise<Array<Product>> {
+  //   return this.productRepository.find({
+  //     select: ["id", "name", "address","underlying","issuanceCycle", 
+  //             "status", "chainId","currentCapacity","maxCapacity","addressesList","currencyName","underlyingName","couponTooltip"],
+  //     where: {
+  //       status: Not(0),
+  //       isPaused: false,
+  //       chainId: chainId,
+  //     },
+  //     order: {
+  //       created_at: "ASC",
+  //     },
+  //   });
+  // }
+
+  async getProducts(chainId: number): Promise<Array<Product>> {
+    try {
+      const products = await this.productRepository.find({
+        select: [
+          "id", 
+          "name", 
+          "address",
+          "underlying",
+          "issuanceCycle", 
+          "status", 
+          "chainId",
+          "currentCapacity",
+          "maxCapacity",
+          "addressesList",
+          "currencyName",
+          "underlyingName",
+          "couponTooltip"
+        ],
+        where: {
+          status: Not(0),
+          isPaused: false,
+          chainId: chainId,
+        },
+        order: {
+          created_at: "ASC",
+        },
+      });
+  
+      // Ensure the response can be serialized to JSON
+      return products.map(product => ({
+        ...product,
+        issuanceCycle: product.issuanceCycle ? {
+          ...product.issuanceCycle,
+          strikePrice1: Number(product.issuanceCycle.strikePrice1),
+          strikePrice2: Number(product.issuanceCycle.strikePrice2),
+          strikePrice3: Number(product.issuanceCycle.strikePrice3),
+          strikePrice4: Number(product.issuanceCycle.strikePrice4),
+          tr1: Number(product.issuanceCycle.tr1),
+          tr2: Number(product.issuanceCycle.tr2),
+          issuanceDate: Number(product.issuanceCycle.issuanceDate),
+          maturityDate: Number(product.issuanceCycle.maturityDate),
+          underlyingSpotRef: Number(product.issuanceCycle.underlyingSpotRef),
+          optionMinOrderSize: Number(product.issuanceCycle.optionMinOrderSize),
+          participation: Number(product.issuanceCycle.participation),
+          coupon: Number(product.issuanceCycle.coupon),
+          apy: product.issuanceCycle.apy,
+          subAccountId: product.issuanceCycle.subAccountId
+        } : new CycleDto() // Provide a default CycleDto if null
+      }));
+    } catch (error) {
+      console.error('Error in getProducts:', error);
+      throw new Error('Failed to fetch products');
+    }
   }
 
   async getProduct(chainId: number, address: string): Promise<ProductDetailDto | null> {
@@ -819,9 +874,10 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
   }
 
   async getDirectionInstrument(subAccountId: string): Promise<{instrumentArray: string[], directionArray: string[]}> {
+    // const subAccountId = "355261"
     return new Promise((resolve, reject) => {
         try {
-            const ws = new WebSocketServer('wss://test.deribit.com/ws/api/v2');
+            const ws = new WebSocketServer('wss://www.deribit.com/ws/api/v2');
 
             // Authentication message
             const authMsg = {
@@ -936,7 +992,7 @@ async getTotalOptionPosition(instrumentArray: string[], directionArray: string[]
       let responsesReceived = 0; // Counter to track how many responses we've received
       const expectedResponses = instrumentArray.length; // Total number of expected responses
 
-      const ws = new WebSocketServer('wss://test.deribit.com/ws/api/v2');
+      const ws = new WebSocketServer('wss://www.deribit.com/ws/api/v2');
 
       ws.onmessage = function (e: any) {
           const response = JSON.parse(e.data);
