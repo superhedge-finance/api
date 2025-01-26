@@ -44,6 +44,10 @@ export class History {
 
   @Column({ nullable: true })
   @Property()
+  amountDecimal: string;
+
+  @Column({ nullable: true })
+  @Property()
   totalBalance: string;
 
   @Column()
