@@ -21,6 +21,14 @@ export class TransactionHistoryDto {
   amountInDecimal: number;
 
   @Property()
+  tokenSymbol: string;
+
+  @Property()
+  decimals: number;
+
+  @Property()
+  amountDecimal: string;
+  @Property()
   transactionHash: string;
 
   @Property()

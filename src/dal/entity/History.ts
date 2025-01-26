@@ -48,6 +48,14 @@ export class History {
 
   @Column({ nullable: true })
   @Property()
+  tokenSymbol: string;
+
+  @Column({ nullable: true })
+  @Property()
+  decimals: number;
+
+  @Column({ nullable: true })
+  @Property()
   totalBalance: string;
 
   @Column()
