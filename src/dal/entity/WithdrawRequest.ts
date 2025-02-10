@@ -24,11 +24,11 @@ export class WithdrawRequest {
 
   @Column()
   @Property()
-  amountPtUnwindPrice: number;
+  amountPtUnwindPrice: string;
 
   @Column()
   @Property()
-  amountOptionUnwindPrice: number;
+  amountOptionUnwindPrice: string;
 
   @Column()
   @Property()
