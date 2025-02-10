@@ -20,6 +20,7 @@ import STORE_COUPON_ABI from "../../../services/abis/StoreCoupon.json";
 import Moralis from 'moralis';
 import { Float } from "type-graphql";
 import { CouponService } from "../../coupon/services/CouponService";
+import { GetHolderListDto } from "../dto/GetHolderListDto";
 require('dotenv').config();
 
 const WebSocketServer = require('ws');``
@@ -209,6 +210,17 @@ export class ProductService {
     const productContract = new Contract(product.address, PRODUCT_ABI, provider);
     const onchainCurrentCapacity = Number(utils.formatUnits(await productContract.currentCapacity(), 0));
 
+    // const onchainCurrentCapacity = product.currentCapacity
+    try {
+      await this.productRepository.update(
+        { address: address },
+        { currentCapacity: String(onchainCurrentCapacity) }
+      );
+    } catch (e) {
+      console.error(e);
+    }
+    
+    
     return {
       id: product.id,
       address: product.address,
@@ -235,6 +247,23 @@ export class ProductService {
       couponTooltip: product.couponTooltip
     }
   }
+
+  async updateCurrentCapacity(chainId: number, productAddress: string): Promise<boolean> {
+    const provider = new providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
+    const productContract = new Contract(productAddress, PRODUCT_ABI, provider);
+    const currentCapacity = await productContract.currentCapacity();
+    try {
+      await this.productRepository.update(
+        { address: productAddress },
+        { currentCapacity: currentCapacity.toString() }
+      );
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  }
+
   async syncProducts(chainId: number, pastEvents: CreatedProductDto[]): Promise<void> {
     await Promise.all(
       pastEvents.map(async (product: CreatedProductDto) => {
@@ -730,27 +759,27 @@ async deletelWithdraw(id: number): Promise<void> {
     return{privateKey,publicKey}
   }
 
-  async getHolderList(productAddress: string, chainId: number): Promise<{balanceToken: number[], ownerAddress: string[]}>  {
+  // async getHolderList(productAddress: string, chainId: number): Promise<GetHolderListDto>  {
     
-    try {
-      const {tokenAddress} = await this.getTokenAddress(chainId, productAddress)
-      if (!tokenAddress) {
-        return { balanceToken: [], ownerAddress: [] };
-      }
-      const response = await Moralis.EvmApi.token.getTokenOwners({
-        "chain": `0x${chainId.toString(16)}`,
-        "order": "ASC",
-        "tokenAddress": tokenAddress
-      })
-      const balanceToken = response.result?.map((item: any) => Number(item?.balance)) ?? [];
-      const ownerAddress = response.result?.map((item: any) => item?.ownerAddress) ?? [];
+  //   try {
+  //     const {tokenAddress} = await this.getTokenAddress(chainId, productAddress)
+  //     if (!tokenAddress) {
+  //       return {ownerAddresses: [], balanceToken: [] };
+  //     }
+  //     const response = await Moralis.EvmApi.token.getTokenOwners({
+  //       "chain": `0x${chainId.toString(16)}`,
+  //       "order": "ASC",
+  //       "tokenAddress": tokenAddress
+  //     })
+  //     const balanceTokenA = response.result?.map((item: any) => Number(item?.balance)) ?? [];
+  //     const ownerAddress = response.result?.map((item: any) => item?.ownerAddress) ?? [];
 
-      return { balanceToken, ownerAddress };
-    } catch (e) {
-      console.error("Error fetching product:", e);
-      return { balanceToken: [], ownerAddress: [] };
-    }
-  }
+  //     return { ownerAddresses: ownerAddress, balanceToken: balanceToken };
+  //   } catch (e) {
+  //     console.error("Error fetching product:", e);
+  //     return { ownerAddresses: [], balanceToken: []};
+  //   }
+  // }
 
   async getTokenAddress(chainId: number, productAddress: string): Promise<{ tokenAddress: string, ptAddress: string, marketAddress: string, currencyAddress: string }> {
     console.log("productAddress",productAddress)
@@ -844,12 +873,15 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
 
         if (totalUserBlock >= noOfBlock) {
           const allocation = earlyWithdrawBalanceUser / currentCapacity;
+          console.log(allocation)
+          console.log(formattedPtBalance)
           const amountOutMin = Math.round(formattedPtBalance * allocation);
 
           const url = `https://api-v2.pendle.finance/sdk/api/v1/swapExactPtForToken?chainId=${chainId}&receiverAddr=${productAddress}&marketAddr=${marketAddress}&amountPtIn=${amountOutMin}&tokenOutAddr=${currencyAddress}&slippage=0.002`;
           console.log(url)
           const response = await fetch(url);
           const params = await response.json();
+          console.log(params)
           amountToken = Number(params.data.amountTokenOut);
           
           const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuance.subAccountId);
@@ -890,7 +922,8 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
                     "client_secret": process.env.CLIENT_SECRET
                 }
             };
-
+            // console.log("authMsg")
+            // console.log(authMsg)
             // Positions message
             const positionsMsg = {
                 "jsonrpc": "2.0",
@@ -1375,7 +1408,7 @@ async getOptionProfit(chainId: number, productAddress: string): Promise<{optionP
   return {optionProfit: Number(optionProfit)};
 }
 
-async getTokenHolderListForProfit(chainId: number, productAddress: string): Promise<{ ownerAddresses: string[], balanceToken: number[] }> {
+async getTokenHolderListForProfit(chainId: number, productAddress: string): Promise<GetHolderListDto> {
   try {
     const {optionProfit} = await this.getOptionProfit(chainId, productAddress);
     console.log("optionProfit");

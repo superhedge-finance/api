@@ -4,12 +4,15 @@ import { Get, Post, Returns,Summary } from "@tsed/schema";
 import { BodyParams, PathParams, QueryParams } from "@tsed/platform-params";
 import { ContractService } from "../../services/ContractService";
 import { ProductService } from "./services/ProductService";
+import { EarlyWithdrawService } from "./services/EarlyWithdrawService";
 import { CreatedProductDto } from "./dto/CreatedProductDto";
 import { ProductDetailDto } from "./dto/ProductDetailDto";
 import { AdminWalletDto } from "./dto/AdminWalletDto";
 import { Not, UpdateResult } from "typeorm";
 // import { CronService } from "../../services/CronService";
 import { BigNumber} from "ethers";
+import { GetPtAndOptionDto } from "../user/dto/GetPtAndOptionDto";
+import { GetHolderListDto } from "./dto/GetHolderListDto";
 
 @Controller("/products")
 export class ProductController {
@@ -17,7 +20,7 @@ export class ProductController {
   private readonly productService: ProductService;
 
   @Inject()
-  // private readonly cronService: CronService;
+  private readonly earlyWithdrawService: EarlyWithdrawService;
 
   @Inject()
   private readonly contractService: ContractService;
@@ -28,9 +31,9 @@ export class ProductController {
     return await this.productService.getProducts(chainId);
   }
 
-  @Get("/get-test")
+  @Get("/get-admin-wallet")
   @Returns(200, AdminWalletDto)
-  async getAdminWalletTest(
+  async getAdminWallet(
     @QueryParams("chainId") chainId: number,
     @QueryParams("productAddress") productAddress: string,
   ): Promise<AdminWalletDto | null> {
@@ -55,13 +58,13 @@ export class ProductController {
   }
 
 
-  @Post("/get-admin-wallet")
-  async getAdminWallet(
-    @QueryParams("chainId") chainId: number,
-    @QueryParams("productAddress") productAddress: string,
-  ): Promise<{resultPublicKey:string}> {
-    return await this.productService.getAdminWallet(chainId,productAddress);
-  }
+  // @Post("/get-admin-wallet")
+  // async getAdminWallet(
+  //   @QueryParams("chainId") chainId: number,
+  //   @QueryParams("productAddress") productAddress: string,
+  // ): Promise<{resultPublicKey:string}> {
+  //   return await this.productService.getAdminWallet(chainId,productAddress);
+  // }
 
   
 
@@ -104,14 +107,14 @@ export class ProductController {
   //   return this.productService.getHolderList(token);
   // }
 
-  @Post("/get-holder-list")
-  // @Returns(200, Array<{ balanceToken: number[], ownerAddress: string[] }>)
-  async getHolderList(
-    @QueryParams("tokenAddress") tokenAddress: string,
-    @QueryParams("chainId") chainId: number
-  ): Promise<{ balanceToken: number[]; ownerAddress: string[] }> {
-    return this.productService.getHolderList(tokenAddress,chainId);
-  }
+  // @Get("/get-holder-list")
+  // // @Returns(200, Array<{ balanceToken: number[], ownerAddress: string[] }>)
+  // async getHolderList(
+  //   @QueryParams("tokenAddress") tokenAddress: string,
+  //   @QueryParams("chainId") chainId: number
+  // ): Promise<GetHolderListDto> {
+  //   return this.productService.getHolderList(tokenAddress,chainId);
+  // }
 
 
   @Post("/get-option-position")
@@ -154,6 +157,21 @@ export class ProductController {
     return this.productService.getPtAndOption(chainId,walletAddress,productAddress,noOfBlock);
   }
 
+
+  @Get("/get-pt-and-position")
+  // @Returns(200,"Failed")
+  async getPtAndOptionNew(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("walletAddress") walletAddress: string,
+    @QueryParams("productAddress") productAddress: string,
+    @QueryParams("noOfBlock") noOfBlock: number
+  ): Promise<GetPtAndOptionDto>{
+    return this.earlyWithdrawService.getPtAndOption(chainId,walletAddress,productAddress,noOfBlock);
+  }
+
+
+
+
   @Post("/change-unwind-margin")
   async changeUnwindMargin(
     @QueryParams("chainId") chainId: number,
@@ -172,14 +190,6 @@ export class ProductController {
   ): Promise<{unwindMargin: number}>{
     console.log("getUnwindMargin")
     return this.productService.getUnwindMargin(chainId,productAddress);
-  }
-
-  @Post("/get-product-expired")
-  async getProductExpired(
-    @QueryParams("chainId") chainId: number,
-    @QueryParams("productAddress") productAddress: string,
-  ): Promise<{expiredFlag: boolean}>{
-    return this.productService.getProductExpired(chainId,productAddress);
   }
 
   @Post("/change-expired-flag")
@@ -207,8 +217,6 @@ export class ProductController {
   ): Promise<{noOfBlocks: number }> {
     return this.productService.getUserOptionBlocks(productAddress,userAddress);
   }
-
-
   // @PathParams should be on endline
 
   @Get("/:address")
@@ -224,29 +232,29 @@ export class ProductController {
   }
 
 
-  @Post("/get-token-holder-list")
+  @Get("/get-token-holder-list-coupon")
   async getTokenHolderListForCoupon(
     @QueryParams("chainId") chainId: number,
     @QueryParams("productAddress") productAddress: string
-  ): Promise<{ ownerAddresses: string[], balanceToken: number[] }> {
+  ): Promise<GetHolderListDto> {
     return await this.productService.getTokenHolderListForCoupon(chainId, productAddress);
   }
 
-  @Post("/get-token-holder-list-profit")
+  @Get("/get-token-holder-list-profit")
   async getTokenHolderListForProfit(
     @QueryParams("chainId") chainId: number,
     @QueryParams("productAddress") productAddress: string
-  ): Promise<{ ownerAddresses: string[], balanceToken: number[] }> {
+  ): Promise<GetHolderListDto> {
     return await this.productService.getTokenHolderListForProfit(chainId, productAddress);
   }
 
-  @Post("/get-token-holder-list-final")
-  async getTokenHolderListTest(
-    @QueryParams("chainId") chainId: number,
-    @QueryParams("productAddress") productAddress: string
-  ): Promise<string> {
-    return await this.productService.getHolderListTest(chainId, productAddress);
-  }
+  // @Post("/get-token-holder-list-final")
+  // async getTokenHolderListTest(
+  //   @QueryParams("chainId") chainId: number,
+  //   @QueryParams("productAddress") productAddress: string
+  // ): Promise<string> {
+  //   return await this.productService.getHolderListTest(chainId, productAddress);
+  // }
 
 }
 
