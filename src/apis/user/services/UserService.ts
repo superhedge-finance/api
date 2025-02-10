@@ -165,7 +165,7 @@ export class UserService {
 
     // Fetch products while excluding sensitive fields
     const products = await this.productRepository.find({
-        select: ["id", "name", "address", "underlying", "issuanceCycle", "status", "chainId", "currencyName", "underlyingName"], // Exclude publicKey and privateKey
+        select: ["id", "name", "address", "underlying", "issuanceCycle", "status", "chainId", "currencyName", "underlyingName", "isExpired"], // Exclude publicKey and privateKey
         where: {
             id: In(user.productIds),
             chainId: chainId,
