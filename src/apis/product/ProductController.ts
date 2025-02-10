@@ -51,10 +51,10 @@ export class ProductController {
 
   @Post("/update-withdraw-request")
   async updateWithdrawRequest(
-    @BodyParams() body: {chainId: number, product: string, address: string, txid: string , amountPtUnwindPrice: number, amountOptionUnwindPrice: number }
+    @BodyParams() body: {chainId: number, product: string, address: string, txid: string , amountPtUnwindPrice: string, amountOptionUnwindPrice: string }
   ): Promise<{result:string}> {
     const {chainId, product, address,txid,amountPtUnwindPrice,amountOptionUnwindPrice } = body;
-    return this.productService.updateWithdrawRequest(chainId,product, address,txid,amountPtUnwindPrice,amountOptionUnwindPrice);
+    return this.earlyWithdrawService.updateWithdrawRequest(chainId,product, address,txid,amountPtUnwindPrice,amountOptionUnwindPrice);
   }
 
 
@@ -117,22 +117,22 @@ export class ProductController {
   // }
 
 
-  @Post("/get-option-position")
-  async getTotalOptionPosition(
-    @BodyParams() body: { instrumentArray: string[]; directionArray: string[] }
-  ): Promise<{ totalAmountPosition: number }> {
-    const { instrumentArray, directionArray } = body;
-    return this.productService.getTotalOptionPosition(instrumentArray, directionArray);
-  }
+  // @Post("/get-option-position")
+  // async getTotalOptionPosition(
+  //   @BodyParams() body: { instrumentArray: string[]; directionArray: string[] }
+  // ): Promise<{ totalAmountPosition: number }> {
+  //   const { instrumentArray, directionArray } = body;
+  //   return this.productService.getTotalOptionPosition(instrumentArray, directionArray);
+  // }
 
 
-  @Post("/get-direction-instrument")
-  // @Returns(200,"Failed")
-  async getDirectionInstrument(
-    @QueryParams("subAccountId") subAccountId: string,
-  ): Promise<{instrumentArray: string[], directionArray: string[]}>{
-    return this.productService.getDirectionInstrument(subAccountId);
-  }
+  // @Post("/get-direction-instrument")
+  // // @Returns(200,"Failed")
+  // async getDirectionInstrument(
+  //   @QueryParams("subAccountId") subAccountId: string,
+  // ): Promise<{instrumentArray: string[], directionArray: string[]}>{
+  //   return this.productService.getDirectionInstrument(subAccountId);
+  // }
 
   // @Post("/get-user-option-position")
   // // @Returns(200,"Failed")
@@ -146,16 +146,16 @@ export class ProductController {
   //   return this.productService.getUserOptionPosition(chainId,walletAddress,productAddress,noOfBlock,totalOptionPosition);
   // }
 
-  @Post("/get-pt-and-position")
-  // @Returns(200,"Failed")
-  async getPtAndOption(
-    @QueryParams("chainId") chainId: number,
-    @QueryParams("walletAddress") walletAddress: string,
-    @QueryParams("productAddress") productAddress: string,
-    @QueryParams("noOfBlock") noOfBlock: number
-  ): Promise<{amountToken: number, amountOption:number}>{
-    return this.productService.getPtAndOption(chainId,walletAddress,productAddress,noOfBlock);
-  }
+  // @Post("/get-pt-and-position")
+  // // @Returns(200,"Failed")
+  // async getPtAndOption(
+  //   @QueryParams("chainId") chainId: number,
+  //   @QueryParams("walletAddress") walletAddress: string,
+  //   @QueryParams("productAddress") productAddress: string,
+  //   @QueryParams("noOfBlock") noOfBlock: number
+  // ): Promise<{amountToken: number, amountOption:number}>{
+  //   return this.productService.getPtAndOption(chainId,walletAddress,productAddress,noOfBlock);
+  // }
 
 
   @Get("/get-pt-and-position")

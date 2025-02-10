@@ -234,7 +234,7 @@ export class EarlyWithdrawService {
         });
     }
 
-    async requestWithdraw(noOfBlock: number, productAddress: string, address: string, amountPtUnwindPrice: number, amountOptionUnwindPrice: number,status:string ): Promise<void> {
+    async requestWithdraw(noOfBlock: number, productAddress: string, address: string, amountPtUnwindPrice: string, amountOptionUnwindPrice: string,status:string ): Promise<void> {
         const entity = new WithdrawRequest();
         entity.noOfBlocks = noOfBlock
         entity.product = productAddress
@@ -321,7 +321,7 @@ export class EarlyWithdrawService {
                 console.log(responseOption.totalAmountPosition)
                 // amountOption = amountOption * -1
                 console.log(amountOption)
-                // await this.requestWithdraw(noOfBlock,productAddress, walletAddress, amountToken, amountOption, "Pending");  
+                await this.requestWithdraw(noOfBlock,productAddress, walletAddress, amountToken.toString(), amountOption.toString(), "Pending");  
 
                 const end = new Date()
                 const duration = end.getTime() - start.getTime(); // Calculate duration in milliseconds
@@ -334,6 +334,26 @@ export class EarlyWithdrawService {
         return { amountToken, amountOption };
     }
 
+    async updateWithdrawRequest(chainId: number, product: string, address: string, txid: string , amountPtUnwindPrice: string, amountOptionUnwindPrice: string): Promise<{result:string}> {
+        console.log("updateWithdrawRequest")
+        let result = "failed"
+        try{
+          const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId])
+          const receipt = await provider.getTransactionReceipt(txid);
+          if (receipt && receipt.status === 1) {
+            console.log("Transaction was successful!");
+            this.withdrawRequestRepository.update(
+              { product,address,amountPtUnwindPrice, amountOptionUnwindPrice},
+              { txid: txid, status: "Success"}
+            );
+            result = "Success"
+          }
+        }
+        catch(e){
+            result = "Failed"
+          }
+        return {result}
+      }
   
 
 

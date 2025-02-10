@@ -472,61 +472,40 @@ export class ProductService {
     );
   }
 
-  async requestWithdraw(noOfBlock: number, productAddress: string, address: string, amountPtUnwindPrice: number, amountOptionUnwindPrice: number,status:string ): Promise<void> {
-    const entity = new WithdrawRequest();
-    entity.noOfBlocks = noOfBlock
-    entity.product = productAddress
-    entity.address = address
-    entity.amountPtUnwindPrice = amountPtUnwindPrice
-    entity.amountOptionUnwindPrice = amountOptionUnwindPrice
-    entity.status = status
-    await this.withdrawRequestRepository.save(entity)
-  }
+  // async requestWithdraw(noOfBlock: number, productAddress: string, address: string, amountPtUnwindPrice: number, amountOptionUnwindPrice: number,status:string ): Promise<void> {
+  //   const entity = new WithdrawRequest();
+  //   entity.noOfBlocks = noOfBlock
+  //   entity.product = productAddress
+  //   entity.address = address
+  //   entity.amountPtUnwindPrice = amountPtUnwindPrice.toString
+  //   entity.amountOptionUnwindPrice = amountOptionUnwindPrice.toString
+  //   entity.status = status
+  //   await this.withdrawRequestRepository.save(entity)
+  // }
 
-  async cancelWithdraw(chainId: number, address: string, isTransferred: boolean): Promise<void> {
-    const request = await this.withdrawRequestRepository.findOne({
-      where: {
-        address: address,
-        isTransferred: isTransferred,
-      },
-    });
-    if (request) {
-      await this.withdrawRequestRepository.remove(request);
-    }
-  }
+//   async cancelWithdraw(chainId: number, address: string, isTransferred: boolean): Promise<void> {
+//     const request = await this.withdrawRequestRepository.findOne({
+//       where: {
+//         address: address,
+//         isTransferred: isTransferred,
+//       },
+//     });
+//     if (request) {
+//       await this.withdrawRequestRepository.remove(request);
+//     }
+//   }
 
-async deletelWithdraw(id: number): Promise<void> {
-  const request = await this.withdrawRequestRepository.findOne({
-    where: {
-      id: id,
-    },
-  });
-  if (request) {
-    // console.log(request)
-    await this.withdrawRequestRepository.remove(request);
-  }
-}
-
-  async updateWithdrawRequest(chainId: number, product: string, address: string, txid: string , amountPtUnwindPrice: number, amountOptionUnwindPrice: number): Promise<{result:string}> {
-    console.log("updateWithdrawRequest")
-    let result = "failed"
-    try{
-      const provider = new ethers.providers.JsonRpcProvider(RPC_PROVIDERS[chainId])
-      const receipt = await provider.getTransactionReceipt(txid);
-      if (receipt && receipt.status === 1) {
-        console.log("Transaction was successful!");
-        this.withdrawRequestRepository.update(
-          { product,address,amountPtUnwindPrice, amountOptionUnwindPrice},
-          { txid: txid, status: "Success"}
-        );
-        result = "Success"
-      }
-    }
-    catch(e){
-        result = "Failed"
-      }
-    return {result}
-  }
+// async deletelWithdraw(id: number): Promise<void> {
+//   const request = await this.withdrawRequestRepository.findOne({
+//     where: {
+//       id: id,
+//     },
+//   });
+//   if (request) {
+//     // console.log(request)
+//     await this.withdrawRequestRepository.remove(request);
+//   }
+// }
 
   async saveProductUser(chainId: number,productAddress: string,address: string,txid: string): Promise<void>
   {
@@ -820,262 +799,262 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
   }
 }
 
-  async getPtAndOption(chainId: number, walletAddress: string, productAddress: string, noOfBlock: number): Promise<{ amountToken: number, amountOption: number }> {
-    console.log('Fetching PT and Option data...');
-    let amountToken = 0;
-    let amountOption = 0;
-    const start = new Date()
-    try {
-        const provider = new providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
-        const productContract = new Contract(productAddress, PRODUCT_ABI, provider);
-        const {tokenAddress,ptAddress,marketAddress,currencyAddress} = await this.getTokenAddress(chainId,productAddress)
+//   async getPtAndOption(chainId: number, walletAddress: string, productAddress: string, noOfBlock: number): Promise<{ amountToken: number, amountOption: number }> {
+//     console.log('Fetching PT and Option data...');
+//     let amountToken = 0;
+//     let amountOption = 0;
+//     const start = new Date()
+//     try {
+//         const provider = new providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
+//         const productContract = new Contract(productAddress, PRODUCT_ABI, provider);
+//         const {tokenAddress,ptAddress,marketAddress,currencyAddress} = await this.getTokenAddress(chainId,productAddress)
         
-        // Fetch token decimals and balance in one go
-        const tokenContract = new Contract(tokenAddress, ERC20_ABI, provider);
-        const [tokenDecimals, tokenBalance] = await Promise.all([
-            tokenContract.decimals(),
-            tokenContract.balanceOf(walletAddress)
-        ]);
-        const formattedTokenBalance = Number(utils.formatUnits(tokenBalance, tokenDecimals));
-        console.log(formattedTokenBalance)
+//         // Fetch token decimals and balance in one go
+//         const tokenContract = new Contract(tokenAddress, ERC20_ABI, provider);
+//         const [tokenDecimals, tokenBalance] = await Promise.all([
+//             tokenContract.decimals(),
+//             tokenContract.balanceOf(walletAddress)
+//         ]);
+//         const formattedTokenBalance = Number(utils.formatUnits(tokenBalance, tokenDecimals));
+//         console.log(formattedTokenBalance)
 
 
-        // Fetch PT address and balance
-        // const ptAddress = await productContract.PT();
-        const ptContract = new Contract(ptAddress, PT_ABI, provider);
-        const ptBalance = await ptContract.balanceOf(productAddress);
-        const formattedPtBalance = Number(utils.formatUnits(ptBalance, 0));
+//         // Fetch PT address and balance
+//         // const ptAddress = await productContract.PT();
+//         const ptContract = new Contract(ptAddress, PT_ABI, provider);
+//         const ptBalance = await ptContract.balanceOf(productAddress);
+//         const formattedPtBalance = Number(utils.formatUnits(ptBalance, 0));
 
-        // Fetch current capacity
-        const currentCapacity = Number(utils.formatUnits(await productContract.currentCapacity(), 0));
+//         // Fetch current capacity
+//         const currentCapacity = Number(utils.formatUnits(await productContract.currentCapacity(), 0));
 
-        // Fetch product details
-        const product = await this.productRepository.findOne({
-            where: { address: productAddress, chainId: chainId, isPaused: false },
-        });
+//         // Fetch product details
+//         const product = await this.productRepository.findOne({
+//             where: { address: productAddress, chainId: chainId, isPaused: false },
+//         });
 
-        if (!product) {
-            throw new Error("Product not found");
-        }
+//         if (!product) {
+//             throw new Error("Product not found");
+//         }
 
-        const unwindMargin = product.unwindMargin
-        const issuance = product.issuanceCycle;
-        // console.log(issuance)
-        const underlyingSpotRef = issuance.underlyingSpotRef;
-        const optionMinOrderSize = issuance.optionMinOrderSize / 10
-        const withdrawBlockSize = underlyingSpotRef * optionMinOrderSize;
+//         const unwindMargin = product.unwindMargin
+//         const issuance = product.issuanceCycle;
+//         // console.log(issuance)
+//         const underlyingSpotRef = issuance.underlyingSpotRef;
+//         const optionMinOrderSize = issuance.optionMinOrderSize / 10
+//         const withdrawBlockSize = underlyingSpotRef * optionMinOrderSize;
 
-        const earlyWithdrawBalanceUser = (noOfBlock * withdrawBlockSize) * 10 ** tokenDecimals;
+//         const earlyWithdrawBalanceUser = (noOfBlock * withdrawBlockSize) * 10 ** tokenDecimals;
 
-        const totalUserBlock = Math.round(formattedTokenBalance / withdrawBlockSize)
+//         const totalUserBlock = Math.round(formattedTokenBalance / withdrawBlockSize)
 
-        console.log(`Total user block: ${totalUserBlock}`);
+//         console.log(`Total user block: ${totalUserBlock}`);
 
-        if (totalUserBlock >= noOfBlock) {
-          const allocation = earlyWithdrawBalanceUser / currentCapacity;
-          console.log(allocation)
-          console.log(formattedPtBalance)
-          const amountOutMin = Math.round(formattedPtBalance * allocation);
+//         if (totalUserBlock >= noOfBlock) {
+//           const allocation = earlyWithdrawBalanceUser / currentCapacity;
+//           console.log(allocation)
+//           console.log(formattedPtBalance)
+//           const amountOutMin = Math.round(formattedPtBalance * allocation);
 
-          const url = `https://api-v2.pendle.finance/sdk/api/v1/swapExactPtForToken?chainId=${chainId}&receiverAddr=${productAddress}&marketAddr=${marketAddress}&amountPtIn=${amountOutMin}&tokenOutAddr=${currencyAddress}&slippage=0.002`;
-          console.log(url)
-          const response = await fetch(url);
-          const params = await response.json();
-          console.log(params)
-          amountToken = Number(params.data.amountTokenOut);
+//           const url = `https://api-v2.pendle.finance/sdk/api/v1/swapExactPtForToken?chainId=${chainId}&receiverAddr=${productAddress}&marketAddr=${marketAddress}&amountPtIn=${amountOutMin}&tokenOutAddr=${currencyAddress}&slippage=0.002`;
+//           console.log(url)
+//           const response = await fetch(url);
+//           const params = await response.json();
+//           console.log(params)
+//           amountToken = Number(params.data.amountTokenOut);
           
-          const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuance.subAccountId);
-          const responseOption = await this.getTotalOptionPosition(instrumentArray, directionArray);
+//           const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuance.subAccountId);
+//           const responseOption = await this.getTotalOptionPosition(instrumentArray, directionArray);
 
-          amountOption = Math.round((optionMinOrderSize * noOfBlock * issuance.participation * responseOption.totalAmountPosition * (1 - (unwindMargin/1000))) * 10 ** tokenDecimals);
-          console.log("amountOption")
-          console.log(responseOption.totalAmountPosition)
-          // amountOption = amountOption * -1
-          console.log(amountOption)
-          await this.requestWithdraw(noOfBlock,productAddress, walletAddress, amountToken, amountOption, "Pending");  
+//           amountOption = Math.round((optionMinOrderSize * noOfBlock * issuance.participation * responseOption.totalAmountPosition * (1 - (unwindMargin/1000))) * 10 ** tokenDecimals);
+//           console.log("amountOption")
+//           console.log(responseOption.totalAmountPosition)
+//           // amountOption = amountOption * -1
+//           console.log(amountOption)
+//           await this.requestWithdraw(noOfBlock,productAddress, walletAddress, amountToken, amountOption, "Pending");  
 
-          const end = new Date()
-          const duration = end.getTime() - start.getTime(); // Calculate duration in milliseconds
-          console.log(`Execution time: ${duration} milliseconds`);  
-      }
-    } catch (error) {
-        console.error("Error in getPtAndOption:", error);
-        // Optionally, you can set default values or rethrow the error
-    }
-    return { amountToken, amountOption };
-  }
+//           const end = new Date()
+//           const duration = end.getTime() - start.getTime(); // Calculate duration in milliseconds
+//           console.log(`Execution time: ${duration} milliseconds`);  
+//       }
+//     } catch (error) {
+//         console.error("Error in getPtAndOption:", error);
+//         // Optionally, you can set default values or rethrow the error
+//     }
+//     return { amountToken, amountOption };
+//   }
 
-  async getDirectionInstrument(subAccountId: string): Promise<{instrumentArray: string[], directionArray: string[]}> {
-    // const subAccountId = "355261"
-    return new Promise((resolve, reject) => {
-        try {
-            const ws = new WebSocketServer('wss://www.deribit.com/ws/api/v2');
+//   async getDirectionInstrument(subAccountId: string): Promise<{instrumentArray: string[], directionArray: string[]}> {
+//     // const subAccountId = "355261"
+//     return new Promise((resolve, reject) => {
+//         try {
+//             const ws = new WebSocketServer('wss://www.deribit.com/ws/api/v2');
 
-            // Authentication message
-            const authMsg = {
-                "jsonrpc": "2.0",
-                "id": 9929,
-                "method": "public/auth",
-                "params": {
-                    "grant_type": "client_credentials",
-                    "client_id": process.env.CLIENT_ID,
-                    "client_secret": process.env.CLIENT_SECRET
-                }
-            };
-            // console.log("authMsg")
-            // console.log(authMsg)
-            // Positions message
-            const positionsMsg = {
-                "jsonrpc": "2.0",
-                "id": 2236,
-                "method": "private/get_positions",
-                "params": {
-                    "currency": "BTC",
-                    "subaccount_id": subAccountId
-                }
-            };
+//             // Authentication message
+//             const authMsg = {
+//                 "jsonrpc": "2.0",
+//                 "id": 9929,
+//                 "method": "public/auth",
+//                 "params": {
+//                     "grant_type": "client_credentials",
+//                     "client_id": process.env.CLIENT_ID,
+//                     "client_secret": process.env.CLIENT_SECRET
+//                 }
+//             };
+//             // console.log("authMsg")
+//             // console.log(authMsg)
+//             // Positions message
+//             const positionsMsg = {
+//                 "jsonrpc": "2.0",
+//                 "id": 2236,
+//                 "method": "private/get_positions",
+//                 "params": {
+//                     "currency": "BTC",
+//                     "subaccount_id": subAccountId
+//                 }
+//             };
 
-            // Set a timeout to reject the promise if no response is received
-            const timeout = setTimeout(() => {
-                ws.close();
-                reject(new Error('WebSocket connection timeout'));
-            }, 30000); // 30 second timeout
+//             // Set a timeout to reject the promise if no response is received
+//             const timeout = setTimeout(() => {
+//                 ws.close();
+//                 reject(new Error('WebSocket connection timeout'));
+//             }, 30000); // 30 second timeout
 
-            // Handle incoming messages
-            ws.onmessage = function (e: any) {
-                try {
-                    const response = JSON.parse(e.data);
-                    console.log('Received from server:', response);
+//             // Handle incoming messages
+//             ws.onmessage = function (e: any) {
+//                 try {
+//                     const response = JSON.parse(e.data);
+//                     console.log('Received from server:', response);
 
-                    if (response.error) {
-                        clearTimeout(timeout);
-                        ws.close();
-                        reject(new Error(`Server error: ${response.error.message}`));
-                        return;
-                    }
+//                     if (response.error) {
+//                         clearTimeout(timeout);
+//                         ws.close();
+//                         reject(new Error(`Server error: ${response.error.message}`));
+//                         return;
+//                     }
 
-                    // Check if the response is for authentication
-                    if (response.id === authMsg.id) {
-                        if (response.result && response.result.access_token) {
-                            console.log("Authentication successful, retrieving positions...");
-                            ws.send(JSON.stringify(positionsMsg));
-                        } else {
-                            clearTimeout(timeout);
-                            ws.close();
-                            reject(new Error("Authentication failed"));
-                        }
-                    }
+//                     // Check if the response is for authentication
+//                     if (response.id === authMsg.id) {
+//                         if (response.result && response.result.access_token) {
+//                             console.log("Authentication successful, retrieving positions...");
+//                             ws.send(JSON.stringify(positionsMsg));
+//                         } else {
+//                             clearTimeout(timeout);
+//                             ws.close();
+//                             reject(new Error("Authentication failed"));
+//                         }
+//                     }
 
-                    // Check if the response is for positions
-                    if (response.id === positionsMsg.id) {
-                        clearTimeout(timeout);
-                        ws.close();
+//                     // Check if the response is for positions
+//                     if (response.id === positionsMsg.id) {
+//                         clearTimeout(timeout);
+//                         ws.close();
 
-                        if (!response.result || !Array.isArray(response.result)) {
-                            reject(new Error("Invalid positions response format"));
-                            return;
-                        }
+//                         if (!response.result || !Array.isArray(response.result)) {
+//                             reject(new Error("Invalid positions response format"));
+//                             return;
+//                         }
 
-                        const directionArray = response.result.map((i: any) => i.direction);
-                        const instrumentArray = response.result.map((i: any) => i.instrument_name);
+//                         const directionArray = response.result.map((i: any) => i.direction);
+//                         const instrumentArray = response.result.map((i: any) => i.instrument_name);
                         
-                        resolve({ instrumentArray, directionArray });
-                    }
-                } catch (error) {
-                    clearTimeout(timeout);
-                    ws.close();
-                    reject(new Error(`Error processing message: ${error.message}`));
-                }
-            };
+//                         resolve({ instrumentArray, directionArray });
+//                     }
+//                 } catch (error) {
+//                     clearTimeout(timeout);
+//                     ws.close();
+//                     reject(new Error(`Error processing message: ${error.message}`));
+//                 }
+//             };
 
-            // Handle WebSocket connection open
-            ws.onopen = function () {
-                console.log("WebSocket connection opened. Sending authentication message...");
-                try {
-                    ws.send(JSON.stringify(authMsg));
-                } catch (error) {
-                    clearTimeout(timeout);
-                    ws.close();
-                    reject(new Error(`Failed to send auth message: ${error.message}`));
-                }
-            };
+//             // Handle WebSocket connection open
+//             ws.onopen = function () {
+//                 console.log("WebSocket connection opened. Sending authentication message...");
+//                 try {
+//                     ws.send(JSON.stringify(authMsg));
+//                 } catch (error) {
+//                     clearTimeout(timeout);
+//                     ws.close();
+//                     reject(new Error(`Failed to send auth message: ${error.message}`));
+//                 }
+//             };
 
-            // Handle WebSocket errors
-            ws.onerror = function (error: any) {
-                clearTimeout(timeout);
-                console.error("WebSocket error:", error);
-                reject(new Error(`WebSocket error: ${error.message}`));
-            };
+//             // Handle WebSocket errors
+//             ws.onerror = function (error: any) {
+//                 clearTimeout(timeout);
+//                 console.error("WebSocket error:", error);
+//                 reject(new Error(`WebSocket error: ${error.message}`));
+//             };
 
-            // Handle WebSocket connection close
-            ws.onclose = function () {
-                clearTimeout(timeout);
-                console.log("WebSocket connection closed.");
-            };
+//             // Handle WebSocket connection close
+//             ws.onclose = function () {
+//                 clearTimeout(timeout);
+//                 console.log("WebSocket connection closed.");
+//             };
 
-        } catch (error) {
-            reject(new Error(`Failed to initialize WebSocket: ${error.message}`));
-        }
-    });
-}
+//         } catch (error) {
+//             reject(new Error(`Failed to initialize WebSocket: ${error.message}`));
+//         }
+//     });
+// }
 
-async getTotalOptionPosition(instrumentArray: string[], directionArray: string[]): Promise<{ totalAmountPosition: number }> {
-  return new Promise((resolve, reject) => {
-      let totalAmountPosition = 0;
-      let responsesReceived = 0; // Counter to track how many responses we've received
-      const expectedResponses = instrumentArray.length; // Total number of expected responses
+// async getTotalOptionPosition(instrumentArray: string[], directionArray: string[]): Promise<{ totalAmountPosition: number }> {
+//   return new Promise((resolve, reject) => {
+//       let totalAmountPosition = 0;
+//       let responsesReceived = 0; // Counter to track how many responses we've received
+//       const expectedResponses = instrumentArray.length; // Total number of expected responses
 
-      const ws = new WebSocketServer('wss://www.deribit.com/ws/api/v2');
+//       const ws = new WebSocketServer('wss://www.deribit.com/ws/api/v2');
 
-      ws.onmessage = function (e: any) {
-          const response = JSON.parse(e.data);
-          const index = instrumentArray.findIndex(instruments => instruments === response.result[0].instrument_name);
+//       ws.onmessage = function (e: any) {
+//           const response = JSON.parse(e.data);
+//           const index = instrumentArray.findIndex(instruments => instruments === response.result[0].instrument_name);
 
-          if (index !== -1) { // Ensure the index is valid
-              let instrumentUnwindPrice = 0;
+//           if (index !== -1) { // Ensure the index is valid
+//               let instrumentUnwindPrice = 0;
 
-              if (directionArray[index] === "buy") {
-                  instrumentUnwindPrice = response.result[0].bid_price * response.result[0].estimated_delivery_price;
-              } else {
-                  instrumentUnwindPrice = response.result[0].ask_price * response.result[0].estimated_delivery_price * -1;
-              }
-              console.log(instrumentUnwindPrice);
-              totalAmountPosition += instrumentUnwindPrice;
-          }
+//               if (directionArray[index] === "buy") {
+//                   instrumentUnwindPrice = response.result[0].bid_price * response.result[0].estimated_delivery_price;
+//               } else {
+//                   instrumentUnwindPrice = response.result[0].ask_price * response.result[0].estimated_delivery_price * -1;
+//               }
+//               console.log(instrumentUnwindPrice);
+//               totalAmountPosition += instrumentUnwindPrice;
+//           }
 
-          responsesReceived++; // Increment the counter for each response received
+//           responsesReceived++; // Increment the counter for each response received
 
-          // Check if we've received all expected responses
-          if (responsesReceived === expectedResponses) {
-              resolve({ totalAmountPosition });
-          }
-      };
+//           // Check if we've received all expected responses
+//           if (responsesReceived === expectedResponses) {
+//               resolve({ totalAmountPosition });
+//           }
+//       };
 
-      ws.onopen = function () {
-          // Send a message for each instrument
-          instrumentArray.forEach((instrument: string) => {
-              const msg = {
-                  "jsonrpc": "2.0",
-                  "id": 3659,
-                  "method": "public/get_book_summary_by_instrument",
-                  "params": {
-                      "instrument_name": instrument
-                  }
-              };
-              ws.send(JSON.stringify(msg));
-          });
-      };
+//       ws.onopen = function () {
+//           // Send a message for each instrument
+//           instrumentArray.forEach((instrument: string) => {
+//               const msg = {
+//                   "jsonrpc": "2.0",
+//                   "id": 3659,
+//                   "method": "public/get_book_summary_by_instrument",
+//                   "params": {
+//                       "instrument_name": instrument
+//                   }
+//               };
+//               ws.send(JSON.stringify(msg));
+//           });
+//       };
 
-      ws.onerror = function (error: any) {
-          console.error("WebSocket error:", error);
-          reject(error);
-      };
+//       ws.onerror = function (error: any) {
+//           console.error("WebSocket error:", error);
+//           reject(error);
+//       };
 
-      ws.onclose = function () {
-          console.log("WebSocket connection closed.");
-      };
-  });
-}
+//       ws.onclose = function () {
+//           console.log("WebSocket connection closed.");
+//       };
+//   });
+// }
 
 
   async changeUnwindMargin(
