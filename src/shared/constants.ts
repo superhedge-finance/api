@@ -13,8 +13,7 @@ export const SUPPORT_CHAINS = [
 
 export const RPC_PROVIDERS: {[chainId: number]: string} = {
   [SUPPORT_CHAIN_IDS.ARBITRUM]:"https://arb1.arbitrum.io/rpc",
-  [SUPPORT_CHAIN_IDS.MAINNET]:"https://site1.moralis-nodes.com/eth/421288c0bf754d8a81b8107ae970ebf9"
-  // [SUPPORT_CHAIN_IDS.ARBITRUM]:"https://site1.moralis-nodes.com/arbitrum/b7337e4749f147acbc6c199c28ef4bc4"
+  [SUPPORT_CHAIN_IDS.MAINNET]: process.env.RPC_PROVIDER_MAINNET as string
 };
 
 export const DECIMAL: { [chainId: number]: number } = {
