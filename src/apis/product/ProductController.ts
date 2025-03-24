@@ -202,6 +202,22 @@ export class ProductController {
     this.productService.changeExpiredFlag(chainId,productAddress,expiredFlag,signatureAdmin);
   }
 
+  @Get("/get-token-holder-list-coupon")
+  async getTokenHolderListForCoupon(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("productAddress") productAddress: string
+  ): Promise<GetHolderListDto> {
+    console.log("getTokenHolderListForCoupon");
+    return await this.productService.getTokenHolderListForCoupon(chainId, productAddress);
+  }
+
+  // @Get("/get-token-holder-list-profit")
+  // async getTokenHolderListForProfit(
+  //   @QueryParams("chainId") chainId: number,
+  //   @QueryParams("productAddress") productAddress: string
+  // ): Promise<GetHolderListDto> {
+  //   return await this.productService.getTokenHolderListForProfit(chainId, productAddress);
+  // }
 
   @Post("/get-total-option-blocks")
   async getTotalOptionBlocks(
@@ -232,29 +248,15 @@ export class ProductController {
   }
 
 
-  @Get("/get-token-holder-list-coupon")
-  async getTokenHolderListForCoupon(
+  
+
+  @Post("/get-token-holder-list-final")
+  async getTokenHolderListTest(
     @QueryParams("chainId") chainId: number,
     @QueryParams("productAddress") productAddress: string
-  ): Promise<GetHolderListDto> {
-    return await this.productService.getTokenHolderListForCoupon(chainId, productAddress);
+  ): Promise<string> {
+    return await this.productService.getHolderListTest(chainId, productAddress);
   }
-
-  @Get("/get-token-holder-list-profit")
-  async getTokenHolderListForProfit(
-    @QueryParams("chainId") chainId: number,
-    @QueryParams("productAddress") productAddress: string
-  ): Promise<GetHolderListDto> {
-    return await this.productService.getTokenHolderListForProfit(chainId, productAddress);
-  }
-
-  // @Post("/get-token-holder-list-final")
-  // async getTokenHolderListTest(
-  //   @QueryParams("chainId") chainId: number,
-  //   @QueryParams("productAddress") productAddress: string
-  // ): Promise<string> {
-  //   return await this.productService.getHolderListTest(chainId, productAddress);
-  // }
 
 }
 

@@ -1196,8 +1196,10 @@ async convertChainId(chainId: number): Promise<string> {
   return `0x${chainId.toString(16)}`;
 }
 
-async getTokenHolderListForCoupon(chainId: number, productAddress: string): Promise<{ ownerAddresses: string[], balanceToken: number[] }> {
+async getTokenHolderListForCoupon(chainId: number, productAddress: string): Promise<{ ownerAddresses: string[], balanceToken: string[] }> {
   try {
+    let total = 0
+    let totalBalance = 0
     const chain = await this.convertChainId(chainId);
     const result = await this.getCouponAndTokenAddress(productAddress);
     if (!result.tokenAddress) {
@@ -1212,13 +1214,24 @@ async getTokenHolderListForCoupon(chainId: number, productAddress: string): Prom
     });
     console.log("getTokenHolderList");
     console.log(response.result);
-
+   
     const ownerAddresses = response.result.map((tokenOwner: any) => tokenOwner.ownerAddress);
     const balanceToken = response.result.map((tokenOwner: any) => {
         const balance = Number(tokenOwner.balance);
         const coupon = result.coupon ?? 0; // Default to 0 if undefined
-        return balance * (coupon / 1000);
+
+        const calculatedBalance = (balance * coupon) / 100000000;
+        total += calculatedBalance;
+        totalBalance += Number(tokenOwner.balanceFormatted);
+        
+        // Convert to string without scientific notation
+        return calculatedBalance.toLocaleString('fullwide', { useGrouping: false });
     });
+    console.log("total");
+    console.log(total);
+    console.log("totalBalance");
+    console.log(totalBalance);
+    console.log(totalBalance * (result.coupon ?? 0) / 100000000);
     return { ownerAddresses, balanceToken }; 
   } catch (e) {
     console.error(e);
@@ -1387,38 +1400,38 @@ async getOptionProfit(chainId: number, productAddress: string): Promise<{optionP
   return {optionProfit: Number(optionProfit)};
 }
 
-async getTokenHolderListForProfit(chainId: number, productAddress: string): Promise<GetHolderListDto> {
-  try {
-    const {optionProfit} = await this.getOptionProfit(chainId, productAddress);
-    console.log("optionProfit");
-    console.log(optionProfit);
-    const chain = await this.convertChainId(chainId);
-    const {totalSupply} = await this.getTotalSupplyToken(chain, productAddress);
+// async getTokenHolderListForProfit(chainId: number, productAddress: string): Promise<GetHolderListDto> {
+//   try {
+//     const {optionProfit} = await this.getOptionProfit(chainId, productAddress);
+//     console.log("optionProfit");
+//     console.log(optionProfit);
+//     const chain = await this.convertChainId(chainId);
+//     const {totalSupply} = await this.getTotalSupplyToken(chain, productAddress);
 
-    const result = await this.getCouponAndTokenAddress(productAddress);
-    if (!result.tokenAddress) {
-      console.error("Token address is undefined");
-      return { ownerAddresses: [], balanceToken: [] }; // Return an empty array if tokenAddress is undefined
-    }
+//     const result = await this.getCouponAndTokenAddress(productAddress);
+//     if (!result.tokenAddress) {
+//       console.error("Token address is undefined");
+//       return { ownerAddresses: [], balanceToken: [] }; // Return an empty array if tokenAddress is undefined
+//     }
 
-    const response = await Moralis.EvmApi.token.getTokenOwners({
-      "chain": chain,
-      "order": "DESC",
-      "tokenAddress": result.tokenAddress
-    });
+//     const response = await Moralis.EvmApi.token.getTokenOwners({
+//       "chain": chain,
+//       "order": "DESC",
+//       "tokenAddress": result.tokenAddress
+//     });
 
-    const ownerAddresses = response.result.map((tokenOwner: any) => tokenOwner.ownerAddress);
-    const balanceToken = response.result.map((tokenOwner: any) => {
-        const balance = Number(tokenOwner.balance); // Default to 0 if undefined
-        return balance * optionProfit / totalSupply;
-    });
+//     const ownerAddresses = response.result.map((tokenOwner: any) => tokenOwner.ownerAddress);
+//     const balanceToken = response.result.map((tokenOwner: any) => {
+//         const balance = Number(tokenOwner.balance); // Default to 0 if undefined
+//         return balance * optionProfit / totalSupply;
+//     });
     
-    return { ownerAddresses, balanceToken }; 
-  } catch (e) {
-    console.error(e);
-    return { ownerAddresses: [], balanceToken: [] }; // Return an empty array in case of an error
-  }
-}
+//     return { ownerAddresses, balanceToken }; 
+//   } catch (e) {
+//     console.error(e);
+//     return { ownerAddresses: [], balanceToken: [] }; // Return an empty array in case of an error
+//   }
+// }
 
 async convertCycleValues(cycle: any): Promise<CycleDto> {
   const convertedCycle = new CycleDto();
