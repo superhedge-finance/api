@@ -8,24 +8,63 @@ import { RPC_PROVIDERS, SH_FACTORY_ADDRESS, SUPPORT_CHAINS } from "../shared/con
 @Injectable()
 export class ContractService {
   private readonly factoryContract: { [chainId: number]: Contract } = {};
+  private readonly factoryAddresses: { [chainId: number]: string[] } = {};
   private readonly productContract: { [chainId: number]: Contract } = {};
   private readonly marketplaceContract: { [chainId: number]: Contract } = {};
   private readonly nftContract: { [chainId: number]: Contract} = {};
   private readonly provider: { [chainId: number]: ethers.providers.JsonRpcProvider } = {};
-  
+
+  private readonly eventListeners: { [key: string]: ethers.providers.Listener } = {};
+
   constructor() {
     for (const chainId of SUPPORT_CHAINS) {
       this.provider[chainId] = new ethers.providers.StaticJsonRpcProvider(RPC_PROVIDERS[chainId]);
       // console.log("SH_FACTORY_ADDRESS[chainId]", SH_FACTORY_ADDRESS[chainId])
-      this.factoryContract[chainId] = new ethers.Contract(SH_FACTORY_ADDRESS[chainId], FACTORY_ABI, this.provider[chainId]);
+      // this.factoryContract[chainId] = new ethers.Contract(SH_FACTORY_ADDRESS[chainId], FACTORY_ABI, this.provider[chainId]);
+      this.factoryAddresses[chainId] = SH_FACTORY_ADDRESS[chainId].map((address) => address.toLowerCase());
     }
   }
 
-  subscribeToEvents(chainId: number, eventName: string, callback: (event: any) => void) {
+  subscribeToEvents(chainId: number, factoryAddress: string, eventName: string, callback: (event: any) => void) {
     // console.log(this.factoryContract);
-    this.factoryContract[chainId].on(eventName, (...event) => {
-      callback(event);
-    });
+    const key = `${chainId}-${factoryAddress}-${eventName}`;
+
+    // Unsubscribe existing listener if any
+    if (this.eventListeners[key]) {
+      this.unsubscribeEvent(chainId, factoryAddress, eventName);
+    }
+
+    try {
+      const checkFactoryAddress = this.factoryAddresses[chainId].includes(factoryAddress.toLowerCase());
+
+      if (!checkFactoryAddress) {
+        throw new Error("Factory address not found");
+      }
+      if (!this.factoryContract[chainId] || this.factoryContract[chainId].address !== factoryAddress) {
+        this.factoryContract[chainId] = new ethers.Contract(factoryAddress, FACTORY_ABI, this.provider[chainId]);
+      }
+
+      const listener = (...event: any[]) => {
+        try {
+          callback(event);
+        } catch (error) {
+          console.error(`Error in event callback for ${eventName}:`, error);
+        }
+      };
+      this.factoryContract[chainId].on(eventName, listener);
+      this.eventListeners[key] = listener;
+    } catch (error) {
+      console.error(`Error subscribing to event ${eventName} on factory ${factoryAddress} on chain ${chainId}:`, error);
+      throw error;
+    }
+  }
+
+  unsubscribeEvent(chainId: number, factoryAddress: string, eventName: string) {
+    const key = `${chainId}-${factoryAddress}-${eventName}`;
+    if (this.eventListeners[key]) {
+      this.factoryContract[chainId].off(eventName, this.eventListeners[key]);
+      delete this.eventListeners[key];
+    }
   }
 
   subscribeToProductEvents(
@@ -36,7 +75,6 @@ export class ContractService {
   ) {
     // console.log(productAddress)
     const productContract = new ethers.Contract(productAddress, PRODUCT_ABI, this.provider[chainId]);
-    
     for (const eventName of eventNames) {
       // console.log(productContract)
       productContract.on(eventName, (...event) => {
@@ -94,17 +132,36 @@ export class ContractService {
     return _principalBalance.eq(BigNumber.from("0"));
   }
 
-  async getPastEvents(chainId: number, eventName: string, fromBlock: number, toBlock: number): Promise<Array<CreatedProductDto>> {
-    const events = await this.factoryContract[chainId].queryFilter(this.factoryContract[chainId].filters[eventName](), fromBlock, toBlock);
-
-    const parsedEvents: CreatedProductDto[] = [];
-    console.log("getPastEvents")
-    for (const event of events) {
-      const parsed = await this.eventToArgs(chainId, event);
-      parsedEvents.push(parsed);
+  async getPastEvents(
+    chainId: number,
+    factoryAddress: string,
+    eventName: string,
+    fromBlock: number,
+    toBlock: number
+  ): Promise<Array<CreatedProductDto>> {
+    // Validate factory address
+    const checkFactoryAddress = this.factoryAddresses[chainId].includes(factoryAddress.toLowerCase());
+    if (!checkFactoryAddress) {
+      throw new Error("Factory address not found");
     }
 
-    return parsedEvents;
+    try {
+      if (!this.factoryContract[chainId] || this.factoryContract[chainId].address !== factoryAddress) {
+        this.factoryContract[chainId] = new ethers.Contract(factoryAddress, FACTORY_ABI, this.provider[chainId]);
+      }
+      const events = await this.factoryContract[chainId].queryFilter(this.factoryContract[chainId].filters[eventName](), fromBlock, toBlock);
+
+      const parsedEvents: CreatedProductDto[] = [];
+      for (const event of events) {
+        const parsed = await this.eventToArgs(chainId, event);
+        parsedEvents.push(parsed);
+      }
+
+      return parsedEvents;
+    } catch (error) {
+      console.error(`Error fetching past events for ${eventName}:`, error);
+      throw error;
+    }
   }
 
   async getPastEventsProduct(chainId: number, productAddress: string,eventName: string, fromBlock: number, toBlock: number): Promise<void> {
