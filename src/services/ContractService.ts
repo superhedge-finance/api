@@ -38,7 +38,7 @@ export class ContractService {
       const checkFactoryAddress = this.factoryAddresses[chainId].includes(factoryAddress.toLowerCase());
 
       if (!checkFactoryAddress) {
-        throw new Error("Factory address not found");
+        throw new Error("Factory address not found!!!!");
       }
       if (!this.factoryContract[chainId] || this.factoryContract[chainId].address !== factoryAddress) {
         this.factoryContract[chainId] = new ethers.Contract(factoryAddress, FACTORY_ABI, this.provider[chainId]);
