@@ -1,6 +1,6 @@
 import { Controller, Inject } from "@tsed/di";
-import { Res } from "@tsed/common";
-import { Get, Post, Returns,Summary } from "@tsed/schema";
+// import { Res } from "@tsed/common";
+import { Get, Post, Returns } from "@tsed/schema";
 import { BodyParams, PathParams, QueryParams } from "@tsed/platform-params";
 import { ContractService } from "../../services/ContractService";
 import { ProductService } from "./services/ProductService";
@@ -8,9 +8,9 @@ import { EarlyWithdrawService } from "./services/EarlyWithdrawService";
 import { CreatedProductDto } from "./dto/CreatedProductDto";
 import { ProductDetailDto } from "./dto/ProductDetailDto";
 import { AdminWalletDto } from "./dto/AdminWalletDto";
-import { Not, UpdateResult } from "typeorm";
+// import { Not, UpdateResult } from "typeorm";
 // import { CronService } from "../../services/CronService";
-import { BigNumber} from "ethers";
+// import { BigNumber} from "ethers";
 import { GetPtAndOptionDto } from "../user/dto/GetPtAndOptionDto";
 import { GetHolderListDto } from "./dto/GetHolderListDto";
 
@@ -48,7 +48,6 @@ export class ProductController {
     return this.productService.getWithdrawList(product);
   }
 
-
   @Post("/update-withdraw-request")
   async updateWithdrawRequest(
     @BodyParams() body: {chainId: number, product: string, address: string, txid: string , amountPtUnwindPrice: string, amountOptionUnwindPrice: string }
@@ -57,7 +56,6 @@ export class ProductController {
     return this.earlyWithdrawService.updateWithdrawRequest(chainId,product, address,txid,amountPtUnwindPrice,amountOptionUnwindPrice);
   }
 
-
   // @Post("/get-admin-wallet")
   // async getAdminWallet(
   //   @QueryParams("chainId") chainId: number,
@@ -65,8 +63,6 @@ export class ProductController {
   // ): Promise<{resultPublicKey:string}> {
   //   return await this.productService.getAdminWallet(chainId,productAddress);
   // }
-
-  
 
   @Post("/update-product-user")
   async saveProductUser(
@@ -157,7 +153,6 @@ export class ProductController {
   //   return this.productService.getPtAndOption(chainId,walletAddress,productAddress,noOfBlock);
   // }
 
-
   @Get("/get-pt-and-position")
   // @Returns(200,"Failed")
   async getPtAndOptionNew(
@@ -168,9 +163,6 @@ export class ProductController {
   ): Promise<GetPtAndOptionDto>{
     return this.earlyWithdrawService.getPtAndOption(chainId,walletAddress,productAddress,noOfBlock);
   }
-
-
-
 
   @Post("/change-unwind-margin")
   async changeUnwindMargin(
@@ -202,6 +194,22 @@ export class ProductController {
     this.productService.changeExpiredFlag(chainId,productAddress,expiredFlag,signatureAdmin);
   }
 
+  @Get("/get-token-holder-list-coupon")
+  async getTokenHolderListForCoupon(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("productAddress") productAddress: string
+  ): Promise<GetHolderListDto> {
+    console.log("getTokenHolderListForCoupon");
+    return await this.productService.getTokenHolderListForCoupon(chainId, productAddress);
+  }
+
+  // @Get("/get-token-holder-list-profit")
+  // async getTokenHolderListForProfit(
+  //   @QueryParams("chainId") chainId: number,
+  //   @QueryParams("productAddress") productAddress: string
+  // ): Promise<GetHolderListDto> {
+  //   return await this.productService.getTokenHolderListForProfit(chainId, productAddress);
+  // }
 
   @Post("/get-total-option-blocks")
   async getTotalOptionBlocks(
@@ -226,35 +234,26 @@ export class ProductController {
   }
 
   @Get("/sync-products/:block")
-  async syncProducts(@PathParams("block") block: number, @QueryParams("chainId") chainId: number): Promise<void> {
-    const pastEvents = await this.contractService.getPastEvents(chainId, "ProductCreated", block - 10, block + 10);
+  async syncProducts(
+    @PathParams("block") block: number,
+    @QueryParams("chainId") chainId: number,
+  ): Promise<void> {
+    const pastEvents = await this.contractService.getPastEvents(
+      chainId,
+      "ProductCreated",
+      block - 10,
+      block + 10
+    );
     await this.productService.syncProducts(chainId, pastEvents);
   }
 
-
-  @Get("/get-token-holder-list-coupon")
-  async getTokenHolderListForCoupon(
+  @Post("/get-token-holder-list-final")
+  async getTokenHolderListTest(
     @QueryParams("chainId") chainId: number,
     @QueryParams("productAddress") productAddress: string
-  ): Promise<GetHolderListDto> {
-    return await this.productService.getTokenHolderListForCoupon(chainId, productAddress);
+  ): Promise<string> {
+    return await this.productService.getHolderListTest(chainId, productAddress);
   }
-
-  @Get("/get-token-holder-list-profit")
-  async getTokenHolderListForProfit(
-    @QueryParams("chainId") chainId: number,
-    @QueryParams("productAddress") productAddress: string
-  ): Promise<GetHolderListDto> {
-    return await this.productService.getTokenHolderListForProfit(chainId, productAddress);
-  }
-
-  // @Post("/get-token-holder-list-final")
-  // async getTokenHolderListTest(
-  //   @QueryParams("chainId") chainId: number,
-  //   @QueryParams("productAddress") productAddress: string
-  // ): Promise<string> {
-  //   return await this.productService.getHolderListTest(chainId, productAddress);
-  // }
 
 }
 

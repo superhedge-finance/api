@@ -5,5 +5,5 @@ export class GetHolderListDto {
     ownerAddresses: string[];
 
     @Property()
-    balanceToken: number[];
+    balanceToken: string[];
 }
