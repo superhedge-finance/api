@@ -132,36 +132,49 @@ export class ContractService {
     return _principalBalance.eq(BigNumber.from("0"));
   }
 
-  async getPastEvents(
-    chainId: number,
-    factoryAddress: string,
-    eventName: string,
-    fromBlock: number,
-    toBlock: number
-  ): Promise<Array<CreatedProductDto>> {
-    // Validate factory address
-    const checkFactoryAddress = this.factoryAddresses[chainId].includes(factoryAddress.toLowerCase());
-    if (!checkFactoryAddress) {
-      throw new Error("Factory address not found");
+  // async getPastEvents(
+  //   chainId: number,
+  //   factoryAddress: string,
+  //   eventName: string,
+  //   fromBlock: number,
+  //   toBlock: number
+  // ): Promise<Array<CreatedProductDto>> {
+  //   // Validate factory address
+  //   const checkFactoryAddress = this.factoryAddresses[chainId].includes(factoryAddress.toLowerCase());
+  //   if (!checkFactoryAddress) {
+  //     throw new Error("Factory address not found");
+  //   }
+
+  //   try {
+  //     if (!this.factoryContract[chainId] || this.factoryContract[chainId].address !== factoryAddress) {
+  //       this.factoryContract[chainId] = new ethers.Contract(factoryAddress, FACTORY_ABI, this.provider[chainId]);
+  //     }
+  //     const events = await this.factoryContract[chainId].queryFilter(this.factoryContract[chainId].filters[eventName](), fromBlock, toBlock);
+
+  //     const parsedEvents: CreatedProductDto[] = [];
+  //     for (const event of events) {
+  //       const parsed = await this.eventToArgs(chainId, event);
+  //       parsedEvents.push(parsed);
+  //     }
+
+  //     return parsedEvents;
+  //   } catch (error) {
+  //     console.error(`Error fetching past events for ${eventName}:`, error);
+  //     throw error;
+  //   }
+  // }
+
+  async getPastEvents(chainId: number, eventName: string, fromBlock: number, toBlock: number): Promise<Array<CreatedProductDto>> {
+    const events = await this.factoryContract[chainId].queryFilter(this.factoryContract[chainId].filters[eventName](), fromBlock, toBlock);
+
+    const parsedEvents: CreatedProductDto[] = [];
+    console.log("getPastEvents")
+    for (const event of events) {
+      const parsed = await this.eventToArgs(chainId, event);
+      parsedEvents.push(parsed);
     }
 
-    try {
-      if (!this.factoryContract[chainId] || this.factoryContract[chainId].address !== factoryAddress) {
-        this.factoryContract[chainId] = new ethers.Contract(factoryAddress, FACTORY_ABI, this.provider[chainId]);
-      }
-      const events = await this.factoryContract[chainId].queryFilter(this.factoryContract[chainId].filters[eventName](), fromBlock, toBlock);
-
-      const parsedEvents: CreatedProductDto[] = [];
-      for (const event of events) {
-        const parsed = await this.eventToArgs(chainId, event);
-        parsedEvents.push(parsed);
-      }
-
-      return parsedEvents;
-    } catch (error) {
-      console.error(`Error fetching past events for ${eventName}:`, error);
-      throw error;
-    }
+    return parsedEvents;
   }
 
   async getPastEventsProduct(chainId: number, productAddress: string,eventName: string, fromBlock: number, toBlock: number): Promise<void> {

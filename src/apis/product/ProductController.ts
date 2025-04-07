@@ -237,11 +237,9 @@ export class ProductController {
   async syncProducts(
     @PathParams("block") block: number,
     @QueryParams("chainId") chainId: number,
-    @QueryParams("factoryAddress") factoryAddress: string
   ): Promise<void> {
     const pastEvents = await this.contractService.getPastEvents(
       chainId,
-      factoryAddress,
       "ProductCreated",
       block - 10,
       block + 10
