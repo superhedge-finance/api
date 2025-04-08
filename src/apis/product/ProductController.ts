@@ -255,6 +255,13 @@ export class ProductController {
     return await this.productService.getHolderListTest(chainId, productAddress);
   }
 
+  // @Post("/update-product-content")
+  // @Returns(200, UpdateProductContentResponseDto)
+  // async updateProductContent(
+  //   @BodyParams() body: UpdateProductContentDto
+  // ): Promise<UpdateProductContentResponseDto> {
+  //   const { chainId, productAddress, strategyContent, riskContent } = body;
+  //   return await this.productService.updateProductContent(chainId, productAddress, strategyContent, riskContent);
+  // }
 }
-
 
