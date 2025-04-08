@@ -16,11 +16,7 @@ export const SuperHedgeDataSource = new DataSource({
   synchronize: true,
   logging: false,
   entities: [...Object.values(entities)],
-  migrations: [
-    process.env.NODE_ENV === 'pro'
-    ? 'dist/dal/migration/*.js'
-    : 'src/dal/migration/*.ts',
-  ],
+  migrations: ["src/dal/migration/*.ts"],
   subscribers: [],
   migrationsTableName: "_migrations",
   namingStrategy: new SnakeNamingStrategy(),
