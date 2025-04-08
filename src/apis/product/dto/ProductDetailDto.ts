@@ -11,16 +11,16 @@ export type DepositActivity = {
 export class ProductDetailDto extends CreatedProductDto {
     @Property()
     chainId: number;
-    
+
     @Property()
     vaultStrategy: string;
 
     @Property()
     risk: string;
-    
+
     @Property()
     fees: string;
-    
+
     @Property()
     counterparties: string;
 
@@ -32,4 +32,32 @@ export class ProductDetailDto extends CreatedProductDto {
 
     @Property()
     deposits: DepositActivity[];
+
+    @Property()
+    strategyContent: string;
+
+    @Property()
+    riskContent: string;
+}
+
+export class UpdateProductContentDto {
+    @Property()
+    chainId: number;
+
+    @Property()
+    productAddress: string;
+
+    @Property()
+    strategyContent: string;
+
+    @Property()
+    riskContent: string;
+}
+
+export class UpdateProductContentResponseDto {
+    @Property()
+    success: boolean;
+
+    @Property()
+    message: string;
 }

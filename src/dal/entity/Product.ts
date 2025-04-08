@@ -6,7 +6,7 @@ import { Property } from "@tsed/schema";
 import { SUPPORT_CHAIN_IDS } from "../../shared/enum";
 
 @Entity("products")
-export class 
+export class
 Product {
   @PrimaryGeneratedColumn()
   id: number;
@@ -108,6 +108,14 @@ Product {
   @Column({ nullable: true , default: "coupon" })
   @Property()
   couponTooltip: string;
+
+  @Column({ nullable: true , default: "" })
+  @Property()
+  strategyContent: string;
+
+  @Column({ nullable: true , default: "" })
+  @Property()
+  riskContent: string;
 
   @CreateDateColumn({ type: "timestamp", default: () => "CURRENT_TIMESTAMP(6)" })
   public created_at: Date;

@@ -3,7 +3,7 @@ import { Not, UpdateResult } from "typeorm";
 import { BigNumber, ethers, FixedNumber, Contract , Wallet, providers, utils} from "ethers";
 import { History, Product, ProductRepository, WithdrawRequest, WithdrawRequestRepository,UserRepository} from "../../../dal";
 import { CreatedProductDto } from "../dto/CreatedProductDto";
-import { ProductDetailDto } from "../dto/ProductDetailDto";
+import { ProductDetailDto, UpdateProductContentResponseDto } from "../dto/ProductDetailDto";
 import { AdminWalletDto } from "../dto/AdminWalletDto";
 import { CycleDto } from "../dto/CycleDto";
 import { StatsDto } from "../dto/StatsDto";
@@ -96,7 +96,7 @@ export class ProductService {
 
   getProductsWithoutStatus(chainId: number): Promise<Array<Product>> {
     return this.productRepository.find({
-      select: ["id", "name", "address","underlying","issuanceCycle", 
+      select: ["id", "name", "address","underlying","issuanceCycle",
         "status", "chainId","currentCapacity","maxCapacity"],
       where: {
         chainId: chainId,
@@ -107,7 +107,7 @@ export class ProductService {
 
   // getProducts(chainId: number): Promise<Array<Product>> {
   //   return this.productRepository.find({
-  //     select: ["id", "name", "address","underlying","issuanceCycle", 
+  //     select: ["id", "name", "address","underlying","issuanceCycle",
   //             "status", "chainId","currentCapacity","maxCapacity","addressesList","currencyName","underlyingName","couponTooltip"],
   //     where: {
   //       status: Not(0),
@@ -124,19 +124,21 @@ export class ProductService {
     try {
       const products = await this.productRepository.find({
         select: [
-          "id", 
-          "name", 
+          "id",
+          "name",
           "address",
           "underlying",
-          "issuanceCycle", 
-          "status", 
+          "issuanceCycle",
+          "status",
           "chainId",
           "currentCapacity",
           "maxCapacity",
           "addressesList",
           "currencyName",
           "underlyingName",
-          "couponTooltip"
+          "couponTooltip",
+          "strategyContent",
+          "riskContent"
         ],
         where: {
           status: Not(0),
@@ -147,7 +149,7 @@ export class ProductService {
           created_at: "ASC",
         },
       });
-  
+
       // Ensure the response can be serialized to JSON
       return products.map(product => ({
         ...product,
@@ -219,8 +221,8 @@ export class ProductService {
     } catch (e) {
       console.error(e);
     }
-    
-    
+
+
     return {
       id: product.id,
       address: product.address,
@@ -244,7 +246,9 @@ export class ProductService {
       unwindMargin: product.unwindMargin,
       currencyName: product.currencyName,
       underlyingName: product.underlyingName,
-      couponTooltip: product.couponTooltip
+      couponTooltip: product.couponTooltip,
+      strategyContent: product.strategyContent,
+      riskContent: product.riskContent
     }
   }
 
@@ -270,7 +274,7 @@ export class ProductService {
         const existProduct = await this.getProduct(chainId, product.address);
         // Convert the cycle values before creating/updating
         const convertedCycle = await this.convertCycleValues(product.issuanceCycle);
-        
+
         if (!existProduct) {
           console.log("syncProducts")
           const wallet = await this.createWallet()
@@ -313,7 +317,7 @@ export class ProductService {
   // async syncProducts(chainId: number, pastEvents: CreatedProductDto[]): Promise<void> {
   //   console.log("syncProducts")
   //   console.log(pastEvents)
-    
+
   //   // Validate chainId is a valid enum value
   //   if (!Object.values(SUPPORT_CHAINS).includes(chainId)) {
   //     throw new Error(`Invalid chainId: ${chainId}. Must be one of: ${Object.values(SUPPORT_CHAINS).join(', ')}`);
@@ -325,10 +329,10 @@ export class ProductService {
   //       const wallet = await this.createWallet()
   //       const addressesList = await this.getAddressesContract(chainId, product.address)
   //       console.log(addressesList)
-        
+
   //       return this.create(
   //         chainId,
-  //         product.address, 
+  //         product.address,
   //         product.name,
   //         product.underlying,
   //         BigNumber.from(product.maxCapacity),
@@ -372,7 +376,7 @@ export class ProductService {
 
   async addProductAddressIntoStream(productAddress: string)
   {
-    try {      
+    try {
       // MORALIS_API_KEY_SDK
       const response = await Moralis.Streams.addAddress({
         "id": streamId,
@@ -394,7 +398,7 @@ export class ProductService {
     for (const event of pastEvents) {
       try {
         const exist = await this.historyRepository.findOne(
-          { where: { transactionHash: event.transactionHash, logIndex: event.logIndex } 
+          { where: { transactionHash: event.transactionHash, logIndex: event.logIndex }
         });
         if (exist) continue;
 
@@ -447,7 +451,7 @@ export class ProductService {
       },
     );
   }
-  
+
   async updateProductPauseStatus(chainId: number, address: string, isPaused: boolean): Promise<UpdateResult> {
     return this.productRepository.update(
       { chainId, address: address },
@@ -525,7 +529,7 @@ export class ProductService {
     catch(e){
         console.log(e)
       }
-    
+
   }
 
   async removeProductUser(chainId: number,productAddress: string,address: string,txid: string): Promise<void>
@@ -546,7 +550,7 @@ export class ProductService {
     catch(e){
         console.log(e)
       }
-    
+
   }
 
   async updateWithdrawRequestStatus(product: string, addressesList: string[]): Promise<void> {
@@ -601,8 +605,8 @@ export class ProductService {
         .getRawMany();
 
     // Extract the total number of blocks
-    const totalNoOfBlocks = request.length > 0 && request[0].no_of_blocks !== null 
-        ? Number(request[0].no_of_blocks) 
+    const totalNoOfBlocks = request.length > 0 && request[0].no_of_blocks !== null
+        ? Number(request[0].no_of_blocks)
         : 0
     return { noOfBlocks: totalNoOfBlocks };
   }
@@ -617,8 +621,8 @@ export class ProductService {
         .getRawMany();
 
     // Extract the total number of blocks
-    const userNoOfBlocks = request.length > 0 && request[0].no_of_blocks !== null 
-        ? Number(request[0].no_of_blocks) 
+    const userNoOfBlocks = request.length > 0 && request[0].no_of_blocks !== null
+        ? Number(request[0].no_of_blocks)
         : 0
     return { noOfBlocks: userNoOfBlocks };
   }
@@ -652,7 +656,7 @@ export class ProductService {
         console.log("Transaction Admin Wallet was successful");
         await this.updateWithdrawRequestStatus(productAddress,addressesList)
       }
-      
+
     }catch(e)
     {
       console.error("StoreOptionPosition", e);
@@ -739,7 +743,7 @@ export class ProductService {
   }
 
   // async getHolderList(productAddress: string, chainId: number): Promise<GetHolderListDto>  {
-    
+
   //   try {
   //     const {tokenAddress} = await this.getTokenAddress(chainId, productAddress)
   //     if (!tokenAddress) {
@@ -782,14 +786,14 @@ export class ProductService {
         };
     } catch (e) {
         console.error("Error fetching product:", e);
-        throw new Error("Failed to retrieve token addresses"); 
+        throw new Error("Failed to retrieve token addresses");
     }
 }
 
 async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: string): Promise<{ tokenBalance: number }> {
   const provider = new providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
   const tokenContract = new Contract(tokenAddress, ERC20_ABI, provider);
-  
+
   try {
       const tokenBalance = await tokenContract.balanceOf(walletAddress);
       return { tokenBalance: Number(tokenBalance) }; // Convert BigNumber to number
@@ -808,7 +812,7 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
 //         const provider = new providers.JsonRpcProvider(RPC_PROVIDERS[chainId]);
 //         const productContract = new Contract(productAddress, PRODUCT_ABI, provider);
 //         const {tokenAddress,ptAddress,marketAddress,currencyAddress} = await this.getTokenAddress(chainId,productAddress)
-        
+
 //         // Fetch token decimals and balance in one go
 //         const tokenContract = new Contract(tokenAddress, ERC20_ABI, provider);
 //         const [tokenDecimals, tokenBalance] = await Promise.all([
@@ -862,7 +866,7 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
 //           const params = await response.json();
 //           console.log(params)
 //           amountToken = Number(params.data.amountTokenOut);
-          
+
 //           const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuance.subAccountId);
 //           const responseOption = await this.getTotalOptionPosition(instrumentArray, directionArray);
 
@@ -871,11 +875,11 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
 //           console.log(responseOption.totalAmountPosition)
 //           // amountOption = amountOption * -1
 //           console.log(amountOption)
-//           await this.requestWithdraw(noOfBlock,productAddress, walletAddress, amountToken, amountOption, "Pending");  
+//           await this.requestWithdraw(noOfBlock,productAddress, walletAddress, amountToken, amountOption, "Pending");
 
 //           const end = new Date()
 //           const duration = end.getTime() - start.getTime(); // Calculate duration in milliseconds
-//           console.log(`Execution time: ${duration} milliseconds`);  
+//           console.log(`Execution time: ${duration} milliseconds`);
 //       }
 //     } catch (error) {
 //         console.error("Error in getPtAndOption:", error);
@@ -957,7 +961,7 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
 
 //                         const directionArray = response.result.map((i: any) => i.direction);
 //                         const instrumentArray = response.result.map((i: any) => i.instrument_name);
-                        
+
 //                         resolve({ instrumentArray, directionArray });
 //                     }
 //                 } catch (error) {
@@ -1214,7 +1218,7 @@ async getTokenHolderListForCoupon(chainId: number, productAddress: string): Prom
     });
     console.log("getTokenHolderList");
     console.log(response.result);
-   
+
     const ownerAddresses = response.result.map((tokenOwner: any) => tokenOwner.ownerAddress);
     const balanceToken = response.result.map((tokenOwner: any) => {
         const balance = Number(tokenOwner.balance);
@@ -1223,7 +1227,7 @@ async getTokenHolderListForCoupon(chainId: number, productAddress: string): Prom
         const calculatedBalance = (balance * coupon) / 100000000;
         total += calculatedBalance;
         totalBalance += Number(tokenOwner.balanceFormatted);
-        
+
         // Convert to string without scientific notation
         return calculatedBalance.toLocaleString('fullwide', { useGrouping: false });
     });
@@ -1232,7 +1236,7 @@ async getTokenHolderListForCoupon(chainId: number, productAddress: string): Prom
     console.log("totalBalance");
     console.log(totalBalance);
     console.log(totalBalance * (result.coupon ?? 0) / 100000000);
-    return { ownerAddresses, balanceToken }; 
+    return { ownerAddresses, balanceToken };
   } catch (e) {
     console.error(e);
     return { ownerAddresses: [], balanceToken: [] }; // Return an empty array in case of an error
@@ -1266,7 +1270,7 @@ async getHolderListTest(chainId: number, productAddress: string): Promise<string
         "cursor": cursor,
         "tokenAddress": tokenAddress
       });
-      // get coupon from product contract 
+      // get coupon from product contract
       // Append new addresses and balances to batch arrays
       const newOwnerAddresses = response.result.map((tokenOwner: any) => tokenOwner.ownerAddress);
       const newBalanceToken = response.result.map((tokenOwner: any) => tokenOwner.balance ); // 100 = 0.01
@@ -1323,15 +1327,15 @@ async getHolderListTest(chainId: number, productAddress: string): Promise<string
 //     const storeCouponContract = new ethers.Contract(storeCouponAddress, STORE_COUPON_ABI, wallet);
 //     const couponCode = await this.getHolderListTest(chainId, productAddress, tokenAddress);
 
-    
+
 //     const addressesLength = ownerAddresses.length;
 //     const balanceLength = balanceToken.length;
-    
+
 //     console.log(`Number of addresses: ${addressesLength}`);
 //     console.log(`Number of balances: ${balanceLength}`);
 //     const gasPrice = await provider.getGasPrice();
 //     const nonce = await provider.getTransactionCount(wallet.address);
-        
+
 //     // const tx = await storeCouponContract.coupon(ownerAddresses,balanceToken, {
 //     //   from: wallet.address,
 //     //   gasPrice: gasPrice,
@@ -1385,7 +1389,7 @@ async getTotalSupplyToken(chainId: string, productAddress: string): Promise<{tot
     const totalSupply = Number(totalSupplyString); // Convert string to number
     console.log("Total Supply:", totalSupply);
 
-    return {totalSupply: totalSupply}; 
+    return {totalSupply: totalSupply};
   } catch (e) {
     console.error(e);
     return { totalSupply: 0 }; // Return an empty array in case of an error
@@ -1425,8 +1429,8 @@ async getOptionProfit(chainId: number, productAddress: string): Promise<{optionP
 //         const balance = Number(tokenOwner.balance); // Default to 0 if undefined
 //         return balance * optionProfit / totalSupply;
 //     });
-    
-//     return { ownerAddresses, balanceToken }; 
+
+//     return { ownerAddresses, balanceToken };
 //   } catch (e) {
 //     console.error(e);
 //     return { ownerAddresses: [], balanceToken: [] }; // Return an empty array in case of an error
@@ -1435,12 +1439,12 @@ async getOptionProfit(chainId: number, productAddress: string): Promise<{optionP
 
 async convertCycleValues(cycle: any): Promise<CycleDto> {
   const convertedCycle = new CycleDto();
-  
+
   // Convert BigNumber values to numbers
   convertedCycle.coupon = cycle.coupon ? Number(ethers.utils.formatUnits(cycle.coupon, 0)) : 0;
   convertedCycle.underlyingSpotRef = cycle.underlyingSpotRef ? Number(ethers.utils.formatUnits(cycle.underlyingSpotRef, 0)) : 0;
   convertedCycle.optionMinOrderSize = cycle.optionMinOrderSize ? Number(ethers.utils.formatUnits(cycle.optionMinOrderSize, 0)) : 0;
-  
+
   // Convert other values that are already numbers or strings
   convertedCycle.strikePrice1 = Number(cycle.strikePrice1);
   convertedCycle.strikePrice2 = Number(cycle.strikePrice2);
@@ -1456,4 +1460,22 @@ async convertCycleValues(cycle: any): Promise<CycleDto> {
 
   return convertedCycle;
 }
+
+async updateProductContent(
+  chainId: number,
+  productAddress: string,
+  strategyContent: string,
+  riskContent: string
+): Promise<UpdateProductContentResponseDto> {
+  const updateResult = await this.productRepository.update(
+    { chainId, address: productAddress },
+    { strategyContent, riskContent }
+  );
+  if (updateResult.affected !== 0) {
+    return { success: true, message: "Product content updated successfully" };
+  } else {
+    return { success: false, message: "Failed to update product content" };
+  }
 }
+}
+
