@@ -248,7 +248,8 @@ export class ProductService {
       underlyingName: product.underlyingName,
       couponTooltip: product.couponTooltip,
       strategyContent: product.strategyContent,
-      riskContent: product.riskContent
+      riskContent: product.riskContent,
+      updatedAt: product.updated_at
     }
   }
 
