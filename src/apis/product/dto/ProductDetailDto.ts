@@ -38,6 +38,9 @@ export class ProductDetailDto extends CreatedProductDto {
 
     @Property()
     riskContent: string;
+
+    @Property()
+    updatedAt: Date;
 }
 
 export class UpdateProductContentDto {
