@@ -13,6 +13,7 @@ import { AdminWalletDto } from "./dto/AdminWalletDto";
 // import { BigNumber} from "ethers";
 import { GetPtAndOptionDto } from "../user/dto/GetPtAndOptionDto";
 import { GetHolderListDto } from "./dto/GetHolderListDto";
+import { ExpiredEarlyWithdrawDto } from "./dto/ExpiredEarlyWithdrawDto";
 
 @Controller("/products")
 export class ProductController {
@@ -72,6 +73,37 @@ export class ProductController {
     @QueryParams("txid") txid: string
   ): Promise<void>{
     return this.productService.saveProductUser(chainId,productAddress,addressWallet,txid);
+  }
+
+  @Get("/check-expired-early-withdraw")
+  // @Returns(200, ExpiredEarlyWithdrawDto)
+  // @Returns(404, String)
+  async checkExpiredEarlyWithdraw(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("productAddress") productAddress: string
+  ): Promise<ExpiredEarlyWithdrawDto | string> {
+    console.log(`checkExpiredEarlyWithdraw - chainId: ${chainId}, productAddress: ${productAddress}`);
+    try {
+      const result = await this.productService.checkExpiredEarlyWithdraw(chainId, productAddress);
+      console.log("Result:", result);
+      
+      if (result === null) {
+        return "Product not found or early withdraw check failed";
+      }
+      return result;
+    } catch (error) {
+      console.error("Error in checkExpiredEarlyWithdraw:", error);
+      throw error;
+    }
+  }
+
+  @Post("/change-early-withdraw-flag")
+  async changeEarlyWithdrawFlag(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("productAddress") productAddress: string,
+    @QueryParams("earlyWithdrawFlag") earlyWithdrawFlag: boolean,
+  ): Promise<void>{
+    this.productService.changeEarlyWithdrawFlag(chainId,productAddress,earlyWithdrawFlag);
   }
 
   // @Post("/request-withdraw")
@@ -194,6 +226,8 @@ export class ProductController {
     this.productService.changeExpiredFlag(chainId,productAddress,expiredFlag,signatureAdmin);
   }
 
+
+
   @Get("/get-token-holder-list-coupon")
   async getTokenHolderListForCoupon(
     @QueryParams("chainId") chainId: number,
@@ -254,6 +288,10 @@ export class ProductController {
   ): Promise<string> {
     return await this.productService.getHolderListTest(chainId, productAddress);
   }
+
+  
+
+
 
   // @Post("/update-product-content")
   // @Returns(200, UpdateProductContentResponseDto)
