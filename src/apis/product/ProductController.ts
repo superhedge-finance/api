@@ -201,10 +201,9 @@ export class ProductController {
     @QueryParams("chainId") chainId: number,
     @QueryParams("productAddress") productAddress: string,
     @QueryParams("unwindMarginValue") unwindMarginValue: number,
-    @QueryParams("signatureAdmin") signatureAdmin: string,
   ): Promise<void>{
     console.log("changeUnwindMargin")
-    this.productService.changeUnwindMargin(chainId,productAddress,unwindMarginValue,signatureAdmin);
+    this.productService.changeUnwindMargin(chainId,productAddress,unwindMarginValue);
   }
 
   @Post("/get-unwind-margin")

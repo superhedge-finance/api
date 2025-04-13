@@ -1093,15 +1093,10 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
 
   async changeUnwindMargin(
     chainId: number,
-    productAddress: string,
-    unwindMarginValue: number,
-    signatureAdmin: string
+    address: string,
+    unwindMarginValue: number
 ): Promise<UpdateResult | null> {
-    // Create message to sign
-    const message = ethers.utils.solidityKeccak256(
-        ["uint256"],
-        [unwindMarginValue]
-    );
+    const { productAddress } = await this.splitAddress(address);
 
     try {
         // Fetch the product from the repository
@@ -1119,33 +1114,20 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
             return null; // Return null if no product is found
         }
 
-        const privateKey = product.privateKey;
-
-        // Check if private key is valid
-        if (!privateKey) {
-            throw new Error("Invalid private key");
-        }
-
-        const wallet = new ethers.Wallet(privateKey);
-        const signatureSystem = await wallet.signMessage(ethers.utils.arrayify(message));
-        // Compare signatures
-        if (signatureAdmin === signatureSystem) {
+       
             // Update the unwind margin in the repository
-            return await this.productRepository.update(
-                { chainId, address: productAddress },
-                { unwindMargin: unwindMarginValue }
-            );
-        } else {
-            console.error("Signature mismatch");
-            throw new Error("Signature mismatch");
-        }
+        return await this.productRepository.update(
+            { chainId, address: productAddress },
+            { unwindMargin: unwindMarginValue }
+        );
     } catch (error) {
         console.error("Error changing unwind margin:", error);
         return null; // Return null or handle error as needed
     }
 }
 
-  async getUnwindMargin(chainId: number, productAddress: string): Promise<{ unwindMargin: number }> {
+  async getUnwindMargin(chainId: number, address: string): Promise<{ unwindMargin: number }> {
+    const { productAddress } = await this.splitAddress(address);
     try {
         const product = await this.productRepository.findOne({
             where: {
