@@ -21,6 +21,7 @@ import Moralis from 'moralis';
 import { Float } from "type-graphql";
 import { CouponService } from "../../coupon/services/CouponService";
 import { GetHolderListDto } from "../dto/GetHolderListDto";
+import { ExpiredEarlyWithdrawDto } from "../dto/ExpiredEarlyWithdrawDto";
 require('dotenv').config();
 
 const WebSocketServer = require('ws');``
@@ -475,6 +476,34 @@ export class ProductService {
         status: statusNumber,
       },
     );
+  }
+
+  async checkExpiredEarlyWithdraw(chainId: number, address: string): Promise<ExpiredEarlyWithdrawDto | null> {
+    try {
+      const { productAddress } = await this.splitAddress(address);
+      console.log('productAddress',productAddress)
+      const product = await this.productRepository.findOne({
+        where: {
+          address: productAddress,
+          chainId: chainId,
+        },
+      });
+      if (product) {
+        return { 
+          expiredFlag: product?.isExpired 
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error("Error in checkExpiredEarlyWithdraw:", error);
+      throw error;
+    }
+  }
+
+  async splitAddress(address: string): Promise<{productAddress: string}> {
+    const productAddress = address.slice(2);
+    console.log(productAddress)
+    return { productAddress };
   }
 
   // async requestWithdraw(noOfBlock: number, productAddress: string, address: string, amountPtUnwindPrice: number, amountOptionUnwindPrice: number,status:string ): Promise<void> {
@@ -1200,6 +1229,37 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
 async convertChainId(chainId: number): Promise<string> {
   return `0x${chainId.toString(16)}`;
 }
+
+async changeEarlyWithdrawFlag(
+  chainId: number,
+  address: string,
+  earlyWithdrawFlag: boolean
+): Promise<UpdateResult | null> {
+  const { productAddress } = await this.splitAddress(address);
+  try {
+    // Fetch the product from the repository
+    const product = await this.productRepository.findOne({
+        where: {
+            address: productAddress,
+            chainId: chainId,
+            isPaused: false,
+        },
+    });
+    if (!product) {
+      console.warn(`Product not found for address: ${productAddress} on chain ID: ${chainId}`);
+      return null; // Return null if no product is found
+    }
+    return await this.productRepository.update(
+        { chainId, address: productAddress },
+        { isExpired: earlyWithdrawFlag }
+    );
+  } catch (error) {
+    console.error("Error changing expired flag:", error);
+    return null; // Always return null in case of an error
+  }
+}
+
+
 
 async getTokenHolderListForCoupon(chainId: number, productAddress: string): Promise<{ ownerAddresses: string[], balanceToken: string[] }> {
   try {
