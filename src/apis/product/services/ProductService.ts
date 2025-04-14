@@ -479,8 +479,11 @@ export class ProductService {
   }
 
   async checkExpiredEarlyWithdraw(chainId: number, address: string): Promise<ExpiredEarlyWithdrawDto | null> {
+    const { productAddress } = await this.splitAddress(address);
+      if (!productAddress) {
+        throw new Error("Invalid address");
+      }
     try {
-      const { productAddress } = await this.splitAddress(address);
       console.log('productAddress',productAddress)
       const product = await this.productRepository.findOne({
         where: {
@@ -501,9 +504,16 @@ export class ProductService {
   }
 
   async splitAddress(address: string): Promise<{productAddress: string}> {
-    const productAddress = address.slice(2);
-    console.log(productAddress)
+    const productAddress = address.slice(4);
+    const password = address.slice(0, 4);
+    if (password !== process.env.VERIFY_PASSWORD) {
+      throw new Error("Invalid address");
+    }
     return { productAddress };
+  }
+
+  async verifyPassword(password: string): Promise<boolean> {
+    return password === process.env.VERIFY_PASSWORD;
   }
 
   // async requestWithdraw(noOfBlock: number, productAddress: string, address: string, amountPtUnwindPrice: number, amountOptionUnwindPrice: number,status:string ): Promise<void> {
@@ -1097,6 +1107,9 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
     unwindMarginValue: number
 ): Promise<UpdateResult | null> {
     const { productAddress } = await this.splitAddress(address);
+    if (!productAddress) {
+      throw new Error("Invalid address");
+    }
 
     try {
         // Fetch the product from the repository
@@ -1128,6 +1141,9 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
 
   async getUnwindMargin(chainId: number, address: string): Promise<{ unwindMargin: number }> {
     const { productAddress } = await this.splitAddress(address);
+    if (!productAddress) {
+      throw new Error("Invalid address");
+    }
     try {
         const product = await this.productRepository.findOne({
             where: {
@@ -1218,6 +1234,9 @@ async changeEarlyWithdrawFlag(
   earlyWithdrawFlag: boolean
 ): Promise<UpdateResult | null> {
   const { productAddress } = await this.splitAddress(address);
+  if (!productAddress) {
+    throw new Error("Invalid address");
+  }
   try {
     // Fetch the product from the repository
     const product = await this.productRepository.findOne({
