@@ -479,7 +479,7 @@ export class ProductService {
   }
 
   async checkExpiredEarlyWithdraw(chainId: number, address: string): Promise<ExpiredEarlyWithdrawDto | null> {
-    const { productAddress } = await this.splitAddress(address);
+    const productAddress  = await this.splitAddress(address);
       if (!productAddress) {
         throw new Error("Invalid address");
       }
@@ -503,13 +503,13 @@ export class ProductService {
     }
   }
 
-  async splitAddress(address: string): Promise<{productAddress: string}> {
-    const productAddress = address.slice(4);
+  async splitAddress(address: string): Promise<string> {
+    const splitedAddress = address.slice(4);
     const password = address.slice(0, 4);
     if (password !== process.env.VERIFY_PASSWORD) {
       throw new Error("Invalid address");
     }
-    return { productAddress };
+    return splitedAddress ;
   }
 
   async verifyPassword(password: string): Promise<boolean> {
@@ -1106,7 +1106,7 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
     address: string,
     unwindMarginValue: number
 ): Promise<UpdateResult | null> {
-    const { productAddress } = await this.splitAddress(address);
+    const productAddress  = await this.splitAddress(address);
     if (!productAddress) {
       throw new Error("Invalid address");
     }
@@ -1140,7 +1140,7 @@ async checkTokenBalance(chainId: number, tokenAddress: string, walletAddress: st
 }
 
   async getUnwindMargin(chainId: number, address: string): Promise<{ unwindMargin: number }> {
-    const { productAddress } = await this.splitAddress(address);
+    const productAddress  = await this.splitAddress(address);
     if (!productAddress) {
       throw new Error("Invalid address");
     }
@@ -1233,7 +1233,7 @@ async changeEarlyWithdrawFlag(
   address: string,
   earlyWithdrawFlag: boolean
 ): Promise<UpdateResult | null> {
-  const { productAddress } = await this.splitAddress(address);
+  const productAddress  = await this.splitAddress(address);
   if (!productAddress) {
     throw new Error("Invalid address");
   }
@@ -1539,5 +1539,88 @@ async updateProductContent(
     return { success: false, message: "Failed to update product content" };
   }
 }
+
+
+async saveUserOptionPositionPaid(chainId: number, txHashAdress: string): Promise<void> {
+
+  console.log("saveUserOptionPositionPaid");
+  const txHash = await this.splitAddress(txHashAdress);
+  console.log("txHash");
+  const chain = await this.convertChainId(chainId);
+  try {
+    const response = await Moralis.EvmApi.transaction.getTransaction({
+      "chain": chain,
+      "transactionHash": txHash
+    });
+    
+    if (response) {
+      const logs = response.raw.logs;
+      // console.log("Transaction logs:", logs);
+      
+      // The topic0 you want to check for
+      const targetTopic0 = ethers.utils.id("UserOptionPositionPaid(uint256)");
+      // console.log("Target topic0:", targetTopic0);
+      
+      // Filter logs to find if any log has the target topic0
+      const matchingLogs = logs?.filter(log => log.topic0 === targetTopic0);
+      
+      if (matchingLogs && matchingLogs.length > 0) {
+        // console.log("Yes - Found matching topic0 in transaction logs");
+        
+        // Process logs in an async manner
+        for (const log of matchingLogs) {
+          console.log("Matching log:", log);
+          console.log(log.block_timestamp);
+          
+          const logAddress = ethers.utils.getAddress(log.address);
+          console.log("Log address (checksummed):", logAddress);
+          const { productId } = await this.getProductId(logAddress, chainId);
+          const history = await this.historyRepository.findOne({
+            where: { transactionHash: txHash, chainId: chainId },
+          });
+          if (history) {
+            console.log("History found:", history);
+          } else {
+            await this.historyRepository.createHistory(
+              chainId,
+              "Admin",
+              ethers.BigNumber.from('0'), // Use the BigNumber here
+              txHash,
+              0,
+              HISTORY_TYPE.DEPOSIT,
+              WITHDRAW_TYPE.NONE,
+              productId,
+              ethers.BigNumber.from('0'),
+              ethers.BigNumber.from('0'),
+              undefined,
+              '[SuperHedge] Early Withdraw - Option Payout (Airdrop)',
+              log.block_timestamp,
+              '',
+              0
+            );
+          }
+        }
+      } else {
+        console.log("No - Target topic0 not found in transaction logs");
+      }
+    }
+  } catch (e) {
+    console.error("Error in saveOptionPaid:", e);
+  }
+}
+
+async getProductId(productSumAddress: string, chainId: number): Promise<{productId: number}> {
+  const product = await this.productRepository.findOne({
+    where: {
+      address: productSumAddress,
+      chainId: chainId,
+      isPaused: false,
+    },
+  });
+  const productId = Number(product?.id);
+  return { productId };
+}
+
+
 }
 

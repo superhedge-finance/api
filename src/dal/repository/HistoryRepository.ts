@@ -16,7 +16,11 @@ export class HistoryRepository extends Repository<History> {
     productId: number,
     tokenId?: BigNumber,
     supply?: BigNumber,
-    from?: string
+    from?: string,
+    eventName?: string,
+    timestamp?: string,
+    tokenSymbol?: string,
+    decimals?: number
   ) => {
     const exist = await this.findOne({ where: { transactionHash, logIndex } });
     if (!exist) {
@@ -27,19 +31,27 @@ export class HistoryRepository extends Repository<History> {
       if (lastEntity) totalBalance = FixedNumber.from(lastEntity.totalBalance);
       
       try {
+        
         const entity = new History();
         entity.address = address;
         entity.chainId = chainId;
         entity.type = type;
         entity.withdrawType = withdrawType;
         entity.productId = productId;
+        
         entity.amount = amount.toString();
         // entity.amountInDecimal = Number(ethers.utils.formatUnits(amount, DECIMAL[chainId]));
-        entity.amountInDecimal = Number(amount);
+       
+        entity.amountInDecimal = 0;
+        entity.amountDecimal = amount.toString();
+        entity.eventTime = timestamp ? new Date(timestamp) : new Date();
+        entity.eventName = eventName || '';
+        entity.tokenSymbol = tokenSymbol || '';
+        entity.decimals = decimals || 0;
         if (type == HISTORY_TYPE.WITHDRAW) {
-          entity.totalBalance = (totalBalance.subUnsafe(FixedNumber.from(entity.amountInDecimal))).toString();
+          entity.totalBalance = (totalBalance.subUnsafe(FixedNumber.from(entity.amountDecimal))).toString();
         } else {
-          entity.totalBalance = (totalBalance.addUnsafe(FixedNumber.from(entity.amountInDecimal))).toString();
+          entity.totalBalance = (totalBalance.addUnsafe(FixedNumber.from(entity.amountDecimal))).toString();
         }
         entity.transactionHash = transactionHash;
         entity.logIndex = logIndex;
@@ -50,6 +62,7 @@ export class HistoryRepository extends Repository<History> {
           entity.supply = supply.toString();
           entity.supplyInDecimal = supply.toNumber();
         }
+        
         if (type == HISTORY_TYPE.TRANSFER) {
           const seller = await this.findOne(
             { where: { address: from, chainId: chainId }, order: { created_at: 'DESC' }}
@@ -60,10 +73,12 @@ export class HistoryRepository extends Repository<History> {
             this.save(seller);
           }
         }
+        
         if (from) entity.from = from;
         return this.save(entity);
       } catch (e){
-        console.log(e);
+        console.error('Error in createHistory:', e);
+        throw e;
       }
     }
   };

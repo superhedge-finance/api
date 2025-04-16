@@ -288,6 +288,13 @@ export class ProductController {
     return await this.productService.getHolderListTest(chainId, productAddress);
   }
 
+  @Post("/save-user-option-position-paid")
+  async saveUserOptionPositionPaid(
+    @QueryParams("chainId") chainId: number,
+    @QueryParams("txHash") txHash: string
+  ): Promise<void> {
+    return await this.productService.saveUserOptionPositionPaid(chainId, txHash);
+  }
   
 
 
