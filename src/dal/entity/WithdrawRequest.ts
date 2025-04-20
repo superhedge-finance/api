@@ -52,4 +52,8 @@ export class WithdrawRequest {
   @Property()
   optionPaid: boolean = false;
 
+  @Column({ default: 1 })
+  @Property()
+  chainId: number;
+
 }

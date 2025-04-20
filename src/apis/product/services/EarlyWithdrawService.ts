@@ -334,7 +334,7 @@ export class EarlyWithdrawService {
         return { amountToken, amountOption };
     }
 
-    async updateWithdrawRequest(chainId: number, product: string, address: string, txid: string , amountPtUnwindPrice: string, amountOptionUnwindPrice: string): Promise<{result:string}> {
+    async updateWithdrawRequest(chainId: number, numberOfBlock: number, product: string, address: string, txid: string , amountPtUnwindPrice: string, amountOptionUnwindPrice: string): Promise<{result:string}> {
         console.log("updateWithdrawRequest")
         let result = "failed"
         try{
@@ -342,10 +342,24 @@ export class EarlyWithdrawService {
           const receipt = await provider.getTransactionReceipt(txid);
           if (receipt && receipt.status === 1) {
             console.log("Transaction was successful!");
-            this.withdrawRequestRepository.update(
-              { product,address,amountPtUnwindPrice, amountOptionUnwindPrice},
-              { txid: txid, status: "Success"}
-            );
+
+            const withdrawRequest = await this.withdrawRequestRepository.findOne({
+              where: { product, txid, address, noOfBlocks: numberOfBlock }
+            });
+
+            if (withdrawRequest) {
+                return {result: "Already processed"}
+            }
+            const entity = new WithdrawRequest();
+            entity.noOfBlocks = numberOfBlock
+            entity.product = product
+            entity.address = address
+            entity.amountPtUnwindPrice = amountPtUnwindPrice
+            entity.amountOptionUnwindPrice = amountOptionUnwindPrice
+            entity.status = "Success"
+            entity.txid = txid
+            entity.chainId = chainId
+            await this.withdrawRequestRepository.save(entity)
             result = "Success"
           }
         }
