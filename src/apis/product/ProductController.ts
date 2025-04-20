@@ -51,10 +51,10 @@ export class ProductController {
 
   @Post("/update-withdraw-request")
   async updateWithdrawRequest(
-    @BodyParams() body: {chainId: number, product: string, address: string, txid: string , amountPtUnwindPrice: string, amountOptionUnwindPrice: string }
+    @BodyParams() body: {chainId: number,numberOfBlock: number, product: string, address: string, txid: string , amountPtUnwindPrice: string, amountOptionUnwindPrice: string }
   ): Promise<{result:string}> {
-    const {chainId, product, address,txid,amountPtUnwindPrice,amountOptionUnwindPrice } = body;
-    return this.earlyWithdrawService.updateWithdrawRequest(chainId,product, address,txid,amountPtUnwindPrice,amountOptionUnwindPrice);
+    const {chainId, numberOfBlock, product, address,txid,amountPtUnwindPrice,amountOptionUnwindPrice } = body;
+    return this.earlyWithdrawService.updateWithdrawRequest(chainId,numberOfBlock,product, address,txid,amountPtUnwindPrice,amountOptionUnwindPrice);
   }
 
   // @Post("/get-admin-wallet")
