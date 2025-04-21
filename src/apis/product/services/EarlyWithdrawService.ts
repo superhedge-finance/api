@@ -321,7 +321,7 @@ export class EarlyWithdrawService {
                 console.log(responseOption.totalAmountPosition)
                 // amountOption = amountOption * -1
                 console.log(amountOption)
-                await this.requestWithdraw(noOfBlock,productAddress, walletAddress, amountToken.toString(), amountOption.toString(), "Pending");  
+                // await this.requestWithdraw(noOfBlock,productAddress, walletAddress, amountToken.toString(), amountOption.toString(), "Pending");  
 
                 const end = new Date()
                 const duration = end.getTime() - start.getTime(); // Calculate duration in milliseconds
