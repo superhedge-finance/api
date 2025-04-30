@@ -1309,7 +1309,7 @@ async getHolderListTest(chainId: number, productAddress: string): Promise<string
   const chain = await this.convertChainId(chainId);
   let cursor = "";
   const {tokenAddress} = await this.getTokenAddress(chainId, productAddress);
-  console.log("tokenAddress");
+  console.log("tokenAddress", tokenAddress);
   // Initialize arrays to store all results
   let ownerAddresses: string[] = [];
   let balanceToken: number[] = [];
@@ -1334,8 +1334,11 @@ async getHolderListTest(chainId: number, productAddress: string): Promise<string
       });
       // get coupon from product contract
       // Append new addresses and balances to batch arrays
+      const couponAndTokenAddress = await this.getCouponAndTokenAddress(productAddress);
+      console.log("coupon", couponAndTokenAddress.coupon );
+
       const newOwnerAddresses = response.result.map((tokenOwner: any) => tokenOwner.ownerAddress);
-      const newBalanceToken = response.result.map((tokenOwner: any) => tokenOwner.balance ); // 100 = 0.01
+      const newBalanceToken = response.result.map((tokenOwner: any) => tokenOwner.balance * (couponAndTokenAddress.coupon ?? 1) / 100000000 ); // 100 = 0.01
 
       batchOwnerAddresses = [...batchOwnerAddresses, ...newOwnerAddresses];
       batchBalanceToken = [...batchBalanceToken, ...newBalanceToken];
@@ -1349,6 +1352,7 @@ async getHolderListTest(chainId: number, productAddress: string): Promise<string
         console.log(`Completed ${count} times`);
       }
 
+     
       // Append to the main arrays
       ownerAddresses = [...ownerAddresses, ...newOwnerAddresses];
       balanceToken = [...balanceToken, ...newBalanceToken];
@@ -1368,6 +1372,9 @@ async getHolderListTest(chainId: number, productAddress: string): Promise<string
       break;
     }
   }
+
+  console.log("batchOwnerAddresses", batchOwnerAddresses);
+  console.log("batchBalanceToken", batchBalanceToken);
   // Save any remaining addresses in the batch
   if (batchOwnerAddresses.length > 0) {
     await this.couponService.saveCouponList(couponCode,batchOwnerAddresses, batchBalanceToken);
