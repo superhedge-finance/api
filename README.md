@@ -1,9 +1,6 @@
-<div align="center">
-  <h1>Superhedge Api</h1>
-  <br />
-</div>
+# Superhedge API
 
-> An awesome project based on Ts.ED framework
+> Backend off-chain processing and data record management
 
 ## How to set up local environment
 
@@ -11,53 +8,40 @@
 
 1. Clone this repository on localhost.
 
-2. Create an enviroment file named `.env` (copy .env.example) and fill the next enviroment variables
+2. Create an environment file named `.env` (copy .env.example).
 
-```
-# Amazon RDS (PostgreSQL) connection information
-DATABASE_HOST=
-DATABASE_NAME=
-DATABASE_USER=
-DATABASE_PASSWORD=
-DATABASE_PORT=
-```
-3. Install dependencies using 'yarn' package manager
+3. Edit /src/Server.ts file for http or https deployment accordingly
+
+4. Install dependencies using 'yarn' package manager
 
 ```bash
-$  yarn
+yarn
 ```
 
-4. Run the api server(default port: 3000)
+5. Run the api server(default port: 3000)
 ```bash
-$  yarn start
+yarn start
 
 # build for production
-$  yarn build
-$  yarn start:prod
+yarn build
+yarn start:prod
 ```
 
 ## How to deploy and run on the hosting server
 
 1. Clone this repository on the server.
 
-2. Create an enviroment file named `.env` (copy .env.example) and fill the next enviroment variables.
+2. Create an environment file named `.env` (copy .env.example).
 
-```
-# Amazon RDS (PostgreSQL) connection information
-DATABASE_HOST=
-DATABASE_NAME=
-DATABASE_USER=
-DATABASE_PASSWORD=
-DATABASE_PORT=
-```
+3. Edit /src/Server.ts file for http or https deployment accordingly
 
-3. Build the container image using 'docker build'.
+4. Build the container image using 'docker build'.
 
 ```bash
 sudo docker build -t superhedge-api .
 ```
 
-4. Run the container in the background using 'docker run'.
+5. Run the container in the background using 'docker run'.
 
 ```bash
 sudo docker run -d -p 3000:3000 superhedge-api

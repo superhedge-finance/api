@@ -19,16 +19,18 @@ import { WebhookController } from "./apis/event/WebhookController";
 @Configuration({
   ...config,
   acceptMimes: ["application/json", "image/png", "text/csv"],
-  // httpPort: process.env.PORT || 3000,
-  // httpPort: "0.0.0.0:3000",
-  //httpsPort: false, // CHANGE
   
-  httpsPort: 3000, // 
-  httpPort: false,   // 
-  httpsOptions: {
-    key: fs.readFileSync(path.resolve(__dirname, '../ssl/private.key')),
-    cert: fs.readFileSync(path.resolve(__dirname, '../ssl/certificate.crt'))
-  },
+  // Uncomment for http deployment eg. on development localhost
+  httpPort: "0.0.0.0:3000",
+  httpsPort: false,
+  
+  // Uncomment for https deployment eg. remote production server with SSL
+  // httpsPort: 3000,
+  // httpPort: false, 
+  // httpsOptions: {
+  //   key: fs.readFileSync(path.resolve(__dirname, '../ssl/private.key')),
+  //   cert: fs.readFileSync(path.resolve(__dirname, '../ssl/certificate.crt'))
+  // },
   componentsScan: false,
   mount: {
     "/": [...Object.values(pages)],
