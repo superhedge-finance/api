@@ -63,7 +63,7 @@ export class EarlyWithdrawService {
     }
 }
 
-    async getDirectionInstrument(subAccountId: string): Promise<{instrumentArray: string[], directionArray: string[]}> {
+    async getDirectionInstrument(subAccountId: string, currency: string): Promise<{instrumentArray: string[], directionArray: string[]}> {
         // const subAccountId = "355261"
         return new Promise((resolve, reject) => {
             try {
@@ -87,7 +87,7 @@ export class EarlyWithdrawService {
                     "id": 2236,
                     "method": "private/get_positions",
                     "params": {
-                        "currency": "BTC",
+                        "currency": currency,
                         "subaccount_id": subAccountId
                     }
                 };
@@ -311,7 +311,7 @@ export class EarlyWithdrawService {
                 const params = await response.json();
                 // console.log(params)
                 amountToken = params.data.amountOut;    
-                const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuance.subAccountId);
+                const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuance.subAccountId, product.underlyingName);
                 const responseOption = await this.getTotalOptionPosition(instrumentArray, directionArray);
 
                 amountOption = Math.round((optionMinOrderSize * noOfBlock * issuance.participation * responseOption.totalAmountPosition * (1 - (unwindMargin/1000))) * 10 ** tokenDecimals);
