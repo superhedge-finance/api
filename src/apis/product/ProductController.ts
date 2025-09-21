@@ -92,7 +92,7 @@ export class ProductController {
       }
       return result;
     } catch (error) {
-      console.error("Error in checkExpiredEarlyWithdraw:", error);
+      console.error("Error in check ExpiredEarlyWithdraw:", error);
       throw error;
     }
   }
