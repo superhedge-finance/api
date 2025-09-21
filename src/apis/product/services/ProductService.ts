@@ -22,6 +22,7 @@ import { Float } from "type-graphql";
 import { CouponService } from "../../coupon/services/CouponService";
 import { GetHolderListDto } from "../dto/GetHolderListDto";
 import { ExpiredEarlyWithdrawDto } from "../dto/ExpiredEarlyWithdrawDto";
+import SubgraphAPI from "./subgraph-api";
 require('dotenv').config();
 
 const WebSocketServer = require('ws');``
@@ -40,6 +41,7 @@ Moralis.start({
   apiKey: process.env.MORALIS_API_KEY_SDK
 });
 const streamId = process.env.MORALIS_STREAM_ID as string
+const api = new SubgraphAPI();
 // const ethers = require('ethers');
 
 @Injectable()
@@ -1628,6 +1630,43 @@ async getProductId(productSumAddress: string, chainId: number): Promise<{product
   return { productId };
 }
 
+/**
+ * Get products from subgraph
+ * @param page - Page number for pagination
+ * @param limit - Number of items per page
+ * @returns Promise with products data and pagination info
+ */
+async getProductsFromSubgraph(page: number = 0, limit: number = 10): Promise<{
+  success: boolean;
+  data: any[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+  };
+  error?: string;
+}> {
+  try {
+    const products = await api.getProducts(page, limit);
+    
+    return {
+      success: true,
+      data: products,
+      pagination: {
+        page,
+        limit,
+        total: products.length
+      }
+    };
+  } catch (error: any) {
+    console.error('Error fetching products from subgraph:', error);
+    return {
+      success: false,
+      error: error.message,
+      data: []
+    };
+  }
+}
 
 }
 

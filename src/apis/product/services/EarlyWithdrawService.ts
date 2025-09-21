@@ -65,6 +65,8 @@ export class EarlyWithdrawService {
 
     async getDirectionInstrument(subAccountId: string, currency: string): Promise<{instrumentArray: string[], directionArray: string[]}> {
         // const subAccountId = "355261"
+        console.log("currency", currency)
+        console.log("subAccountId", subAccountId)
         return new Promise((resolve, reject) => {
             try {
                 const ws = new WebSocketServer('wss://www.deribit.com/ws/api/v2');

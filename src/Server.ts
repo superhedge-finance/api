@@ -20,15 +20,15 @@ import { WebhookController } from "./apis/event/WebhookController";
   ...config,
   acceptMimes: ["application/json", "image/png", "text/csv"],
   // httpPort: process.env.PORT || 3000,
-  // httpPort: "0.0.0.0:3000",
+  httpPort: "0.0.0.0:3000",
   //httpsPort: false, // CHANGE
   
-  httpsPort: 3000, // 
-  httpPort: false,   // 
-  httpsOptions: {
-    key: fs.readFileSync(path.resolve(__dirname, '../ssl/private.key')),
-    cert: fs.readFileSync(path.resolve(__dirname, '../ssl/certificate.crt'))
-  },
+  // httpsPort: 3000, // 
+  // httpPort: false,   // 
+  // httpsOptions: {
+  //   key: fs.readFileSync(path.resolve(__dirname, '../ssl/private.key')),
+  //   cert: fs.readFileSync(path.resolve(__dirname, '../ssl/certificate.crt'))
+  // },
   componentsScan: false,
   mount: {
     "/": [...Object.values(pages)],

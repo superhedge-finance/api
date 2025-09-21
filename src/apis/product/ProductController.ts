@@ -32,6 +32,14 @@ export class ProductController {
     return await this.productService.getProducts(chainId);
   }
 
+  @Get("/subgraph")
+  async getProductsFromSubgraph(
+    @QueryParams("page") page: number = 0,
+    @QueryParams("limit") limit: number = 10
+  ): Promise<any> {
+    return await this.productService.getProductsFromSubgraph(page, limit);
+  }
+
   @Get("/get-admin-wallet")
   @Returns(200, AdminWalletDto)
   async getAdminWallet(
