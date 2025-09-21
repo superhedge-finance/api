@@ -15,4 +15,8 @@ coverage
 *.swp
 *.swo
 *~
-ssl
+ssl/
+ssl/*
+*.key
+*.crt
+*.pem
