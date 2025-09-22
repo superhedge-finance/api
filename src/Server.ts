@@ -12,6 +12,11 @@ import * as pages from "./pages";
 import * as apis from "./apis";
 import * as fs from 'fs';
 import * as path from "path";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import compression from "compression";
+import methodOverride from "method-override";
+import bodyParser from "body-parser";
 
 // Import the Webhook Controller
 import { WebhookController } from "./apis/event/WebhookController";
@@ -42,12 +47,12 @@ import { WebhookController } from "./apis/event/WebhookController";
     },
   ],
   middlewares: [
-    "cors",
-    "cookie-parser",
-    "compression",
-    "method-override",
-    "json-parser",
-    { use: "urlencoded-parser", options: { extended: true } },
+    cors(),
+    cookieParser(),
+    compression(),
+    methodOverride(),
+    bodyParser.json(),
+    { use: bodyParser.urlencoded({ extended: true }) },
   ],
   views: {
     root: join(process.cwd(), "../views"),
