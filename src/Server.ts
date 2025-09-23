@@ -2,6 +2,7 @@ import { join } from "path";
 import { Configuration, Inject } from "@tsed/di";
 import { PlatformApplication } from "@tsed/common";
 import "@tsed/platform-express"; // Keep this import
+import "@tsed/platform-views";
 import "@tsed/ajv";
 import "@tsed/swagger";
 import "@tsed/typegraphql";
@@ -56,7 +57,7 @@ import { WebhookController } from "./apis/event/WebhookController";
     { use: bodyParser.urlencoded({ extended: true }) },
   ],
   views: {
-    root: join(__dirname, "../views"),
+    root: join(process.cwd(), "views"),
     extensions: {
       ejs: "ejs",
     },
