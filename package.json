@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "build": "yarn run barrels && tsc --project tsconfig.compile.json",
-    "vercel-build": "yarn run barrels",
+    "vercel-build": "yarn build",
     "barrels": "barrelsby --config .barrelsby.json",
     "start": "yarn run barrels && tsnd --inspect --exit-child --cls --ignore-watch node_modules --respawn --transpile-only -r tsconfig-paths/register src/index.ts",
     "start:prod": "cross-env NODE_ENV=production node dist/index.js",
