@@ -3,6 +3,7 @@ import { Configuration, Inject } from "@tsed/di";
 import { PlatformApplication } from "@tsed/common";
 import "@tsed/platform-express"; // Keep this import
 import "@tsed/platform-views";
+import "@tsed/engines";
 import "@tsed/ajv";
 import "@tsed/swagger";
 import "@tsed/typegraphql";
@@ -58,9 +59,7 @@ import { WebhookController } from "./apis/event/WebhookController";
   ],
   views: {
     root: join(process.cwd(), "views"),
-    extensions: {
-      ejs: "ejs",
-    },
+    viewEngine: "ejs",
   },
   exclude: ["**/*.spec.ts"],
 })
