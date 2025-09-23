@@ -6,6 +6,11 @@
       "use": "@vercel/node@3"
     }
   ],
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "views/**"
+    }
+  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index.ts" }
   ],
