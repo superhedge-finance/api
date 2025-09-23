@@ -80,8 +80,8 @@ export default async function handler(req: any, res: any) {
       platformPromise = PlatformExpress.bootstrap(Server);
     }
     const platform = await platformPromise;
-    const app = (platform.app as any).raw || (platform as any).callback || (platform as any).app;
-    return (app as any)(req, res);
+    const cb = (platform as any).callback ? (platform as any).callback() : (platform.app as any);
+    return (cb as any)(req, res);
   } catch (error: any) {
     $log.error({ event: "SERVER_BOOTSTRAP_ERROR", message: error.message, stack: error.stack });
     res.status(500).send("Internal Server Error");
