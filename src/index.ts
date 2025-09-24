@@ -72,17 +72,18 @@ registerProvider({
   useValue: new CouponAddressListRepository(CouponAddressList, SuperHedgeDataSource.createEntityManager()),
 });
 
-async function bootstrap() {
-  try {
-    const platform = await PlatformExpress.bootstrap(Server);
-    await platform.listen();
+let platformPromise: Promise<any> | undefined;
 
-    process.on("SIGINT", () => {
-      platform.stop();
-    });
-  } catch (error) {
+export default async function handler(req: any, res: any) {
+  try {
+    if (!platformPromise) {
+      platformPromise = PlatformExpress.bootstrap(Server);
+    }
+    const platform = await platformPromise;
+    const cb = (platform as any).callback ? (platform as any).callback() : (platform.app as any);
+    return (cb as any)(req, res);
+  } catch (error: any) {
     $log.error({ event: "SERVER_BOOTSTRAP_ERROR", message: error.message, stack: error.stack });
+    res.status(500).send("Internal Server Error");
   }
 }
-
-bootstrap();

@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "views/**"
+    }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index.ts" }
+  ],
+  "env": { "NODE_ENV": "production" }
+}
+
