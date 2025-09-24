@@ -57,7 +57,7 @@ import { WebhookController } from "./apis/event/WebhookController";
     { use: bodyParser.urlencoded({ extended: true }) },
   ],
   views: {
-    root: join(__dirname, "views"),
+    root: join(process.cwd(), "views"),
     viewEngine: "ejs",
   },
   exclude: ["**/*.spec.ts"],
