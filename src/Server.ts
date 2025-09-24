@@ -4,14 +4,14 @@ import { PlatformApplication } from "@tsed/common";
 import "@tsed/platform-express"; // Keep this import
 import "@tsed/ajv";
 import "@tsed/swagger";
-// import "@tsed/typegraphql"; // disabled on serverless
+// import "@tsed/typegraphql"; // disable GraphQL on Vercel unless configured
+import "@tsed/platform-views";
+import "@tsed/engines";
 import "./datasources/index";
 import "./resolvers/index";
 import { config } from "./config";
 import * as pages from "./pages";
 import * as apis from "./apis";
-import "@tsed/platform-views";
-import "@tsed/engines";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import compression from "compression";
@@ -24,9 +24,7 @@ import { WebhookController } from "./apis/event/WebhookController";
 @Configuration({
   ...config,
   acceptMimes: ["application/json", "image/png", "text/csv"],
-  // httpPort: process.env.PORT || 3000,
-  // httpPort: "0.0.0.0:3000",
-  // disable in-app TLS for Vercel; TLS is terminated at the edge
+  // In serverless/Vercel we don't bind ports inside the app
   httpPort: false,
   httpsPort: false,
   componentsScan: false,
