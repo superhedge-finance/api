@@ -6,7 +6,6 @@ import "@tsed/platform-views";
 import "@tsed/engines";
 import "@tsed/ajv";
 import "@tsed/swagger";
-import "@tsed/typegraphql";
 import "./datasources/index";
 import "./resolvers/index";
 import { config } from "./config";
