@@ -10,8 +10,7 @@ import "./resolvers/index";
 import { config } from "./config";
 import * as pages from "./pages";
 import * as apis from "./apis";
-import * as fs from 'fs';
-import * as path from "path";
+// remove fs/path ssl usage for serverless
 
 // Import the Webhook Controller
 import { WebhookController } from "./apis/event/WebhookController";
@@ -21,14 +20,9 @@ import { WebhookController } from "./apis/event/WebhookController";
   acceptMimes: ["application/json", "image/png", "text/csv"],
   // httpPort: process.env.PORT || 3000,
   // httpPort: "0.0.0.0:3000",
-  //httpsPort: false, // CHANGE
-  
-  httpsPort: 3000, // 
-  httpPort: false,   // 
-  httpsOptions: {
-    key: fs.readFileSync(path.resolve(__dirname, '../ssl/private.key')),
-    cert: fs.readFileSync(path.resolve(__dirname, '../ssl/certificate.crt'))
-  },
+  // disable in-app TLS for Vercel; TLS is terminated at the edge
+  httpPort: false,
+  httpsPort: false,
   componentsScan: false,
   mount: {
     "/": [...Object.values(pages)],
