@@ -7,11 +7,7 @@ export const config: Partial<TsED.Configuration> = {
   version: pkg.version,
   envs,
   logger: loggerConfig,
-  graphql: {
-    default: {
-      path: "/graphql",
-      buildSchemaOptions: {},
-    },
-  },
+  // Disable GraphQL/Apollo on Vercel for now to avoid platform mismatch
+  // If needed later, migrate to a compatible setup or REST-only
   // additional shared configuration
 };

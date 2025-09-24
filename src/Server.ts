@@ -6,7 +6,6 @@ import "@tsed/platform-views";
 import "@tsed/engines";
 import "@tsed/ajv";
 import "@tsed/swagger";
-import "@tsed/typegraphql";
 import "./datasources/index";
 import "./resolvers/index";
 import { config } from "./config";
@@ -58,7 +57,7 @@ import { WebhookController } from "./apis/event/WebhookController";
     { use: bodyParser.urlencoded({ extended: true }) },
   ],
   views: {
-    root: join(__dirname, "views"),
+    root: join(process.cwd(), "views"),
     viewEngine: "ejs",
   },
   exclude: ["**/*.spec.ts"],
