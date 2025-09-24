@@ -26,4 +26,11 @@ export class HomeController {
       }),
     };
   }
+
+  @Hidden()
+  @Get("/favicon.ico")
+  @Returns(204)
+  favicon() {
+    return "";
+  }
 }
