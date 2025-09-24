@@ -8,7 +8,7 @@ import "@tsed/swagger";
 import "@tsed/platform-views";
 import "@tsed/engines";
 import "./datasources/index";
-import "./resolvers/index";
+// import "./resolvers/index"; // remove GraphQL resolvers
 import { config } from "./config";
 import * as pages from "./pages";
 import * as apis from "./apis";

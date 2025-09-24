@@ -7,11 +7,6 @@ export const config: Partial<TsED.Configuration> = {
   version: pkg.version,
   envs,
   logger: loggerConfig,
-  graphql: {
-    default: {
-      path: "/graphql",
-      buildSchemaOptions: {},
-    },
-  },
+  // GraphQL disabled
   // additional shared configuration
 };
