@@ -4,13 +4,19 @@ import { PlatformApplication } from "@tsed/common";
 import "@tsed/platform-express"; // Keep this import
 import "@tsed/ajv";
 import "@tsed/swagger";
-import "@tsed/typegraphql";
+// import "@tsed/typegraphql"; // disabled on serverless
 import "./datasources/index";
 import "./resolvers/index";
 import { config } from "./config";
 import * as pages from "./pages";
 import * as apis from "./apis";
-// remove fs/path ssl usage for serverless
+import "@tsed/platform-views";
+import "@tsed/engines";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import compression from "compression";
+import methodOverride from "method-override";
+import bodyParser from "body-parser";
 
 // Import the Webhook Controller
 import { WebhookController } from "./apis/event/WebhookController";
@@ -36,18 +42,16 @@ import { WebhookController } from "./apis/event/WebhookController";
     },
   ],
   middlewares: [
-    "cors",
-    "cookie-parser",
-    "compression",
-    "method-override",
-    "json-parser",
-    { use: "urlencoded-parser", options: { extended: true } },
+    cors(),
+    cookieParser(),
+    compression(),
+    methodOverride(),
+    bodyParser.json(),
+    { use: bodyParser.urlencoded({ extended: true }) },
   ],
   views: {
-    root: join(process.cwd(), "../views"),
-    extensions: {
-      ejs: "ejs",
-    },
+    root: join(process.cwd(), "views"),
+    viewEngine: "ejs",
   },
   exclude: ["**/*.spec.ts"],
 })
