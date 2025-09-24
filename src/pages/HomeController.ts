@@ -33,4 +33,18 @@ export class HomeController {
   favicon() {
     return "";
   }
+
+  @Hidden()
+  @Get("/favicon.ico")
+  @Returns(204)
+  faviconIco() {
+    return "";
+  }
+
+  @Hidden()
+  @Get("/favicon.png")
+  @Returns(204)
+  faviconPng() {
+    return "";
+  }
 }
