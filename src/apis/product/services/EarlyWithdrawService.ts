@@ -307,10 +307,13 @@ export class EarlyWithdrawService {
                 const url = `https://api-v2.pendle.finance/core/v1/sdk/1/markets/${marketAddress}/swap?receiver=${productAddress}&slippage=0.002&enableAggregator=false&tokenIn=${ptAddress}&tokenOut=${currencyAddress}&amountIn=${amountOutMin}`
                 // console.log(newUrl)
                 // console.log(url)
-                const response = await fetch(url);
+                const urlv2 = `https://api-v2.pendle.finance/core/v2/sdk/1/convert?receiver=${productAddress}&slippage=0.01&enableAggregator=false&aggregators=kyberswap%2Cokx&tokensIn=${ptAddress}&amountsIn=${amountOutMin}&tokensOut=${currencyAddress}&redeemRewards=false&needScale=false`
+                
+                const response = await fetch(urlv2);
                 const params = await response.json();
-                // console.log(params)
-                amountToken = params.data.amountOut;    
+                // amountToken = params.data.amountOut;
+                amountToken = params.routes.outputs.amount; 
+
                 const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuance.subAccountId, product.underlyingName);
                 const responseOption = await this.getTotalOptionPosition(instrumentArray, directionArray);
 
