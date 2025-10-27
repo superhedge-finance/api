@@ -312,7 +312,10 @@ export class EarlyWithdrawService {
                 const response = await fetch(urlv2);
                 const params = await response.json();
                 // amountToken = params.data.amountOut;
-                amountToken = params.routes.outputs.amount; 
+                // amountToken = params.routes.outputs.amount; 
+
+                // Safe extraction with fallback
+                amountToken = Number(params?.routes?.[0]?.contractParamInfo?.contractCallParams?.[3]?.minTokenOut);
 
                 const { instrumentArray, directionArray } = await this.getDirectionInstrument(issuance.subAccountId, product.underlyingName);
                 const responseOption = await this.getTotalOptionPosition(instrumentArray, directionArray);
